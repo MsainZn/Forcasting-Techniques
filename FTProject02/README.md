@@ -4,7 +4,7 @@
     <img src="https://img.shields.io/badge/CCDS-Project%20template-328F97?logo=cookiecutter" />
 </a>
 
-FOrcasting Load for UN countries
+Load Forcasting from 2005 to 2023 EU Countries
 
 ## Project Organization
 
@@ -26,7 +26,7 @@ FOrcasting Load for UN countries
 │                         the creator's initials, and a short `-` delimited description, e.g.
 │                         `1.0-jqp-initial-data-exploration`.
 │
-├── pyproject.toml     <- Project configuration file with package metadata for FTProject02
+├── pyproject.toml     <- Project configuration file with package metadata for src
 │                         and configuration for tools like black
 │
 ├── references         <- Data dictionaries, manuals, and all other explanatory materials.
@@ -39,9 +39,9 @@ FOrcasting Load for UN countries
 │
 ├── setup.cfg          <- Configuration file for flake8
 │
-└── FTProject02                <- Source code for use in this project.
+└── src                <- Source code for use in this project.
     │
-    ├── __init__.py    <- Makes FTProject02 a Python module
+    ├── __init__.py    <- Makes src a Python module
     │
     ├── data           <- Scripts to download or generate data
     │   └── make_dataset.py

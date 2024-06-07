@@ -28,14 +28,14 @@ clean:
 ## Lint using flake8 and black (use `make format` to do formatting)
 .PHONY: lint
 lint:
-	flake8 FTProject02
-	isort --check --diff --profile black FTProject02
-	black --check --config pyproject.toml FTProject02
+	flake8 src
+	isort --check --diff --profile black src
+	black --check --config pyproject.toml src
 
 ## Format source code with black
 .PHONY: format
 format:
-	black --config pyproject.toml FTProject02
+	black --config pyproject.toml src
 
 
 
