@@ -2,7 +2,7 @@
 
 ## Description
 
-Load Forcasting For EU Coutries
+FOrcasting Load for UN countries
 
 ## Commands
 

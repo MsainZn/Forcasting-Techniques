@@ -2,7 +2,7 @@
 # GLOBALS                                                                       #
 #################################################################################
 
-PROJECT_NAME = Forcasting-Techniques
+PROJECT_NAME = FTProject02
 PYTHON_VERSION = 3.10
 PYTHON_INTERPRETER = python
 
@@ -28,14 +28,14 @@ clean:
 ## Lint using flake8 and black (use `make format` to do formatting)
 .PHONY: lint
 lint:
-	flake8 Forcasting-Techniques
-	isort --check --diff --profile black Forcasting-Techniques
-	black --check --config pyproject.toml Forcasting-Techniques
+	flake8 FTProject02
+	isort --check --diff --profile black FTProject02
+	black --check --config pyproject.toml FTProject02
 
 ## Format source code with black
 .PHONY: format
 format:
-	black --config pyproject.toml Forcasting-Techniques
+	black --config pyproject.toml FTProject02
 
 
 

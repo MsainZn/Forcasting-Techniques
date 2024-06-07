@@ -1,4 +1,4 @@
-name: Forcasting-Techniques
+name: FTProject02
 channels:
   - conda-forge
 dependencies:

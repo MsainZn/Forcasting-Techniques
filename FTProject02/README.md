@@ -4,7 +4,7 @@
     <img src="https://img.shields.io/badge/CCDS-Project%20template-328F97?logo=cookiecutter" />
 </a>
 
-Load Forcasting For EU Coutries
+FOrcasting Load for UN countries
 
 ## Project Organization
 
@@ -26,7 +26,7 @@ Load Forcasting For EU Coutries
 │                         the creator's initials, and a short `-` delimited description, e.g.
 │                         `1.0-jqp-initial-data-exploration`.
 │
-├── pyproject.toml     <- Project configuration file with package metadata for Forcasting-Techniques
+├── pyproject.toml     <- Project configuration file with package metadata for FTProject02
 │                         and configuration for tools like black
 │
 ├── references         <- Data dictionaries, manuals, and all other explanatory materials.
@@ -39,9 +39,9 @@ Load Forcasting For EU Coutries
 │
 ├── setup.cfg          <- Configuration file for flake8
 │
-└── Forcasting-Techniques                <- Source code for use in this project.
+└── FTProject02                <- Source code for use in this project.
     │
-    ├── __init__.py    <- Makes Forcasting-Techniques a Python module
+    ├── __init__.py    <- Makes FTProject02 a Python module
     │
     ├── data           <- Scripts to download or generate data
     │   └── make_dataset.py

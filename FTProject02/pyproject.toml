@@ -3,9 +3,9 @@ requires = ["flit_core >=3.2,<4"]
 build-backend = "flit_core.buildapi"
 
 [project]
-name = "Forcasting-Techniques"
+name = "FTProject02"
 version = "0.0.1"
-description = "Load Forcasting For EU Coutries"
+description = "FOrcasting Load for UN countries"
 authors = [
   { name = "msain1995" },
 ]
@@ -28,5 +28,5 @@ exclude = '''
 '''
 
 [tool.ruff.lint.isort]
-known_first_party = ["Forcasting-Techniques"]
+known_first_party = ["FTProject02"]
 force_sort_within_sections = true
