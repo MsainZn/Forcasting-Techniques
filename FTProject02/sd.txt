@@ -1,0 +1,54 @@
+
+# file_names = {
+#     "Holidays_ES.xlsx",
+#     "Holidays_FR.xlsx",
+#     "Holidays_PL.xlsx",
+#     "Holidays_PT.xlsx",
+#     "Holidays_SE.xlsx",
+
+#     "Irradiance_ES.xlsx",
+#     "Irradiance_FR.xlsx",
+#     "Irradiance_PL.xlsx",
+#     "Irradiance_PT.xlsx",
+#     "Irradiance_SE.xlsx",
+
+#     "Load_ES.xlsx",
+#     "Load_FR.xlsx",
+#     "Load_PL.xlsx",
+#     "Load_PT.xlsx",
+#     "Load_SE.xlsx",
+
+#     "Temperature_ES.xlsx",
+#     "Temperature_FR.xlsx",
+#     "Temperature_PL.xlsx",
+#     "Temperature_PT.xlsx",
+#     "Temperature_SE.xlsx"
+# }
+
+
+
+# Merge_CSVs(f"{PATH_interim}/Holidays_ES", r'^(201[5-9]\.csv)$')
+
+
+
+
+
+# def Create_All_CSVs (
+#         path_raw_dataset: str, 
+#         path_interim_dataset: str, 
+#         file_names:list, 
+#     ) -> None:
+
+#     # Iterate Through all files
+#     for idx, name in enumerate(file_names):
+#         # Create Seperate Directories
+#         save_dir_path = os.path.join(path_interim_dataset, os.path.splitext(name)[0])
+#         if not os.path.exists(save_dir_path):
+#             os.mkdir(save_dir_path)
+
+#         # Process xlsx files
+#         Excel_Sheet_Manager(path_raw_dataset, name, save_dir_path)
+#         print(f'All sheets with respect to {name} is saved [{100 * ((idx+1)/file_names.__len__())}%]!')
+    
+#     # Operation Successful    
+#     print("Done Saving all Sheets!")
