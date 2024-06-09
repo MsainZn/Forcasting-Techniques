@@ -155,6 +155,14 @@ def Join_CSVs (path_to_dir:str) -> None :
     merged_df.to_csv(output_file_path, index=False)
     shutil.rmtree(path_to_dir)
 
+def Prep_CSVs (
+        path_to_file:str, 
+    ) -> None:
+    # Remove Nan Elements
+    df = pd.read_csv(path_to_file)
+    df_cleaned = df.dropna()
+    df_cleaned.to_csv(path_to_file, index=False)
+
 def Sample_Manager(
         path_initial:str, 
         path_intermediate:str, 
@@ -168,11 +176,40 @@ def Sample_Manager(
     for str_code in ctr_code:
         # Create CSVs
         Create_CSVs(os.path.join(path_intermediate, str_code), pattern)
-        # Clean CSVs
+        # Clean CSVs From Duplicate Date
         Clean_Dataset(os.path.join(path_intermediate, str_code))
         # Combine All Information
         Join_CSVs (os.path.join(path_intermediate, str_code))
+        # Prep Dataset
+        Prep_CSVs(os.path.join(path_intermediate, f'{str_code}.csv'))
 
+def Test_Manager(
+        path_to_file:str, 
+        ctr_code: list
+    ) -> dict:
+    status_dict = {}
+    for code in ctr_code:
+        print(f"For code {code}:")
+        df = pd.read_csv(os.path.join(path_to_file, f'{code}.csv'))
+        # Check for missing values or empty elements
+        total_nan_count = df.isnull().sum().sum()
+        total_empty_count = (df.astype(str) == '').sum().sum()
+        print("Total count of NaN values:", total_nan_count)
+        print("Total count of Empty values:", total_empty_count)
+
+        status_dict[code] = (total_nan_count, total_empty_count)
+
+        nan_indices = df.isnull().any(axis=1)
+        nan_columns = df.columns[df.isnull().any()]
+
+        # Print out the rows and columns where NaN values occur
+        print("Rows with NaN values:")
+        print(df[nan_indices])
+
+        print("\nColumns with NaN values:")
+        print(nan_columns)
+    
+    return status_dict 
 
 if __name__ == "__main__":
     # Important Paths
@@ -181,5 +218,6 @@ if __name__ == "__main__":
     ctr_code = ['ES', 'PT', 'PL', 'FR', 'SE']
     pattern = r'^(201[5-9]\.csv)$'
     Sample_Manager(PATH_raw, PATH_interim, ctr_code)
+    Test_Manager(PATH_interim, ctr_code)
 
 
