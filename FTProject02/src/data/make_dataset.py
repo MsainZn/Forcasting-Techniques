@@ -4,8 +4,10 @@ import pandas as pd
 import re
 import shutil
 from pathlib import Path
+import holidays
 
-def Organize_Files (
+
+def Copy_CSVs_For_Process (
         source_dir:str, 
         target_dir:str, 
         country_code:list = ['ES', 'PT', 'PL', 'FR', 'SE']
@@ -124,25 +126,16 @@ def Merge_CSVs(
     df_combined.to_csv(output_file_path, index=False)
     # df_combined.to_csv(os.path.join(f"{path_to_dir}/..", f'{os.path.basename(path_to_dir)}.csv'), index=False)
 
-def Clean_Duplicates_CSV (
-        csv_path: str
-    ) -> None :
-    load_df = pd.read_csv(csv_path)
-    # Remove Duplicate Elemnts
-    load_df.drop_duplicates(subset='Date', keep='first', inplace=True)
-    # Change Date String to Year
-    load_df['Date'] = pd.to_datetime(load_df['Date']).dt.year
-    load_df.rename(columns={'Date': 'Year'}, inplace=True)
-    load_df.to_csv(csv_path, index=False)
-
-def Clean_Dataset (
+def Pre_Join_Operations_CSV (
         path_to_dir:str
     ) -> None :
-    # Iterate through files in the source directory
     file_names = os.listdir(path_to_dir)
     for file_name in file_names:
-        # f"{path_to_dir}/{file_name}"
-        Clean_Duplicates_CSV(os.path.join(path_to_dir, file_name)) 
+        csv_path = os.path.join(path_to_dir, file_name)
+        load_df = pd.read_csv(csv_path)
+        # Remove Duplicate Elemnts
+        load_df.drop_duplicates(subset='Date', keep='first', inplace=True)
+        load_df.to_csv(csv_path, index=False)
 
 def Join_CSVs (
         path_to_dir:str
@@ -156,9 +149,9 @@ def Join_CSVs (
     temperature_df = pd.read_csv(path / f'Temperature_{path.name}.csv')
 
     merged_df = holidays_df
-    merged_df = pd.merge(merged_df, irradiance_df, on=['Year', 'Month', 'Day', 'Hour'], how='outer')
-    merged_df = pd.merge(merged_df, load_df, on=['Year', 'Month', 'Day', 'Hour'], how='outer')
-    merged_df = pd.merge(merged_df, temperature_df, on=['Year', 'Month', 'Day', 'Hour'], how='outer')
+    merged_df = pd.merge(merged_df, irradiance_df, on=['Date', 'Month', 'Day', 'Hour'], how='outer')
+    merged_df = pd.merge(merged_df, load_df, on=['Date', 'Month', 'Day', 'Hour'], how='outer')
+    merged_df = pd.merge(merged_df, temperature_df, on=['Date', 'Month', 'Day', 'Hour'], how='outer')
 
     output_file_path = path.parent / f'{path.name}.csv'
     merged_df.to_csv(output_file_path, index=False)
@@ -166,11 +159,40 @@ def Join_CSVs (
 
 def Prep_CSV (
         path_to_file:str, 
+        mthd:str = 'drp'
     ) -> None:
     # Remove Nan Elements
     df = pd.read_csv(path_to_file)
-    df_cleaned = df.dropna()
+    df_cleaned = df.dropna() if mthd == 'drp' else df.interpolate(method='linear')
     df_cleaned.to_csv(path_to_file, index=False)
+
+def Feature_Design_Basic (
+        path_to_file:str,
+        ctr_code: list = None
+    ) -> None :
+
+    df = pd.read_csv(path_to_file)
+
+    df['Year']      = pd.to_datetime(df['Date']).dt.year
+    df['DayOfYear'] = pd.to_datetime(df['Date']).dt.day_of_year
+    df['Quarter']   = pd.to_datetime(df['Date']).dt.quarter
+    df['Weekday']   = pd.to_datetime(df['Date']).dt.weekday + 1
+    df['Day']       = pd.to_datetime(df['Date']).dt.day
+    df['Month']     = pd.to_datetime(df['Date']).dt.month
+    df['Hour']      = pd.to_datetime(df['Date']).dt.hour
+    df['IsWeekend'] = (df['Weekday'] > 5).astype(int)
+
+    df['IsHoliday'] = pd.to_datetime(df['Date']).dt.hour
+
+    df.to_csv(path_to_file, index=False)
+
+def Reorder_CSV (
+        path_to_file:str, 
+        selected_columns: list
+    ) -> None:
+    df = pd.read_csv(path_to_file)
+    df_reordered = df[selected_columns]
+    df_reordered.to_csv(path_to_file, index=False)
 
 def Sample_Manager(
         path_intermediate:str, 
@@ -182,11 +204,13 @@ def Sample_Manager(
         # Create CSVs
         Create_CSVs(os.path.join(path_intermediate, str_code), pattern)
         # Clean CSVs From Duplicate Date
-        Clean_Dataset(os.path.join(path_intermediate, str_code))
+        Pre_Join_Operations_CSV(os.path.join(path_intermediate, str_code))
         # Combine All Information
         Join_CSVs (os.path.join(path_intermediate, str_code))
         # Prep Dataset
         Prep_CSV(os.path.join(path_intermediate, f'{str_code}.csv'))
+        # Feature Engineering
+        Feature_Design_Basic (os.path.join(path_intermediate, f'{str_code}.csv'))
         # Reorder the columns
         Reorder_CSV(os.path.join(path_intermediate, f'{str_code}.csv'), selected_cols)
 
@@ -203,12 +227,9 @@ def Test_Manager(
         total_empty_count = (df.astype(str) == '').sum().sum()
         print("Total count of NaN values:", total_nan_count)
         print("Total count of Empty values:", total_empty_count)
-
         status_dict[code] = (total_nan_count, total_empty_count)
-
         nan_indices = df.isnull().any(axis=1)
         nan_columns = df.columns[df.isnull().any()]
-
         # Print out the rows and columns where NaN values occur
         print("Rows with NaN values:")
         print(df[nan_indices])
@@ -218,14 +239,6 @@ def Test_Manager(
     
     return status_dict 
 
-def Reorder_CSV (
-        path_to_file:str, 
-        selected_columns: list
-    ) -> None:
-    df = pd.read_csv(path_to_file)
-    df_reordered = df[selected_columns]
-    df_reordered.to_csv(path_to_file, index=False)
-
 
 if __name__ == "__main__":
     # Important Paths
@@ -233,12 +246,13 @@ if __name__ == "__main__":
     PATH_interim = "../../data/interim"
     ctr_code = ['ES', 'PT', 'PL', 'FR', 'SE']
     pattern = r'^(201[5-9]\.csv)$'
-    selected_cols = ['Year', 'Month', 'Day', 'Hour', 
-                     'A', 'B', 'weekday', 
-                     'Temperature', 'Irrad_direct', 'Irrad_difuse', 
-                     'Load_Prev', 'Load']
-    Organize_Files(PATH_raw, PATH_interim, ctr_code)
-    Sample_Manager(PATH_raw, PATH_interim, ctr_code, selected_cols)
+    selected_cols = ['Date', 'Year', 'DayOfYear', 'Month', 'Quarter', 'Day', 'Hour', 'Weekday', 'IsWeekend', # Calender Specific
+                    # 'A', 'B', 'Load_Prev', # ????
+                     'Temperature', 'Irrad_direct', 'Irrad_difuse',                             # Weather Condition
+                     'Load'] 
+    Copy_CSVs_For_Process(PATH_raw, PATH_interim, ctr_code)
+    Sample_Manager(PATH_interim, ctr_code, selected_cols)
     Test_Manager(PATH_interim, ctr_code)
+
 
 
