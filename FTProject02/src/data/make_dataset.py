@@ -95,7 +95,10 @@ def Filter_CSVs(
     
     return csv_files
 
-def Merge_CSVs(path_to_dir:str, pattern:str) -> None:
+def Merge_CSVs(
+        path_to_dir:str, 
+        pattern:str
+    ) -> None:
     # Get a list of CSV file paths in the input directory
     csv_files = Filter_CSVs(path_to_dir, pattern)
     
@@ -121,7 +124,9 @@ def Merge_CSVs(path_to_dir:str, pattern:str) -> None:
     df_combined.to_csv(output_file_path, index=False)
     # df_combined.to_csv(os.path.join(f"{path_to_dir}/..", f'{os.path.basename(path_to_dir)}.csv'), index=False)
 
-def Clean_Duplicates_CSV (csv_path: str) -> None :
+def Clean_Duplicates_CSV (
+        csv_path: str
+    ) -> None :
     load_df = pd.read_csv(csv_path)
     # Remove Duplicate Elemnts
     load_df.drop_duplicates(subset='Date', keep='first', inplace=True)
@@ -130,14 +135,18 @@ def Clean_Duplicates_CSV (csv_path: str) -> None :
     load_df.rename(columns={'Date': 'Year'}, inplace=True)
     load_df.to_csv(csv_path, index=False)
 
-def Clean_Dataset (path_to_dir:str) -> None :
+def Clean_Dataset (
+        path_to_dir:str
+    ) -> None :
     # Iterate through files in the source directory
     file_names = os.listdir(path_to_dir)
     for file_name in file_names:
         # f"{path_to_dir}/{file_name}"
         Clean_Duplicates_CSV(os.path.join(path_to_dir, file_name)) 
 
-def Join_CSVs (path_to_dir:str) -> None :
+def Join_CSVs (
+        path_to_dir:str
+    ) -> None :
     
     # Read each CSV file into a DataFrame
     path = Path(path_to_dir)
@@ -155,7 +164,7 @@ def Join_CSVs (path_to_dir:str) -> None :
     merged_df.to_csv(output_file_path, index=False)
     shutil.rmtree(path_to_dir)
 
-def Prep_CSVs (
+def Prep_CSV (
         path_to_file:str, 
     ) -> None:
     # Remove Nan Elements
@@ -164,14 +173,10 @@ def Prep_CSVs (
     df_cleaned.to_csv(path_to_file, index=False)
 
 def Sample_Manager(
-        path_initial:str, 
         path_intermediate:str, 
-        ctr_code:list
+        ctr_code:list,
+        selected_cols:list
     ) -> None:
-
-    # Organize Files From Raw Dataset
-    Organize_Files(path_initial, path_intermediate, ctr_code)
-
     # Iterate By Country
     for str_code in ctr_code:
         # Create CSVs
@@ -181,7 +186,9 @@ def Sample_Manager(
         # Combine All Information
         Join_CSVs (os.path.join(path_intermediate, str_code))
         # Prep Dataset
-        Prep_CSVs(os.path.join(path_intermediate, f'{str_code}.csv'))
+        Prep_CSV(os.path.join(path_intermediate, f'{str_code}.csv'))
+        # Reorder the columns
+        Reorder_CSV(os.path.join(path_intermediate, f'{str_code}.csv'), selected_cols)
 
 def Test_Manager(
         path_to_file:str, 
@@ -211,13 +218,27 @@ def Test_Manager(
     
     return status_dict 
 
+def Reorder_CSV (
+        path_to_file:str, 
+        selected_columns: list
+    ) -> None:
+    df = pd.read_csv(path_to_file)
+    df_reordered = df[selected_columns]
+    df_reordered.to_csv(path_to_file, index=False)
+
+
 if __name__ == "__main__":
     # Important Paths
     PATH_raw     = "../../data/raw"
     PATH_interim = "../../data/interim"
     ctr_code = ['ES', 'PT', 'PL', 'FR', 'SE']
     pattern = r'^(201[5-9]\.csv)$'
-    Sample_Manager(PATH_raw, PATH_interim, ctr_code)
+    selected_cols = ['Year', 'Month', 'Day', 'Hour', 
+                     'A', 'B', 'weekday', 
+                     'Temperature', 'Irrad_direct', 'Irrad_difuse', 
+                     'Load_Prev', 'Load']
+    Organize_Files(PATH_raw, PATH_interim, ctr_code)
+    Sample_Manager(PATH_raw, PATH_interim, ctr_code, selected_cols)
     Test_Manager(PATH_interim, ctr_code)
 
 
