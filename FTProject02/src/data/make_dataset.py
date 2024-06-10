@@ -7,6 +7,39 @@ from pathlib import Path
 import holidays
 
 
+def is_holiday(
+        date: str, 
+        country: str
+    ) -> bool:
+    """
+    Check if a given date is a holiday in the specified country.
+
+    Parameters:
+    date (datetime.date): The date to check.
+    country (str): The country code (ISO 3166-1 alpha-2).
+
+    Returns:
+    bool: True if the date is a holiday in the specified country, False otherwise.
+    """
+    # Mapping of country codes to their respective holiday functions
+    holiday_countries = {
+        'FR': holidays.France,
+        'PT': holidays.Portugal,
+        'PL': holidays.Poland,
+        'ES': holidays.Spain,
+        'SE': holidays.Sweden
+    }
+    
+    # Ensure the country code is supported
+    if country not in holiday_countries:
+        raise ValueError(f"Country code '{country}' is not supported.")
+    
+    # Retrieve the holiday list for the specific country and year
+    country_holidays = holiday_countries[country](years=date.year)
+    
+    # Check if the date is in the list of holidays for that country
+    return date in country_holidays
+
 def Copy_CSVs_For_Process (
         source_dir:str, 
         target_dir:str, 
@@ -157,47 +190,52 @@ def Join_CSVs (
     merged_df.to_csv(output_file_path, index=False)
     shutil.rmtree(path_to_dir)
 
-def Prep_CSV (
+def Post_Join_Operations (
         path_to_file:str, 
-        mthd:str = 'drp'
+        mthd:str = 'drp',
+        cols_to_drp:list = None
     ) -> None:
-    # Remove Nan Elements
+    
     df = pd.read_csv(path_to_file)
-    df_cleaned = df.dropna() if mthd == 'drp' else df.interpolate(method='linear')
+
+    # Drop Useless Columns
+    df_rem = df.drop(columns=cols_to_drp) if cols_to_drp is not None else df
+    df_rem = df_rem.infer_objects(copy=False)
+
+    # Remove Nan Elements
+    df_cleaned = df_rem.dropna() if mthd == 'drp' else df_rem.interpolate(method='linear')
     df_cleaned.to_csv(path_to_file, index=False)
+    print(f"Post-Join Operations on {path_to_file} is Done!")
+
 
 def Feature_Design_Basic (
         path_to_file:str,
-        ctr_code: list = None
+        ctr_code: str,
+        selected_cols: list
     ) -> None :
 
     df = pd.read_csv(path_to_file)
-
-    df['Year']      = pd.to_datetime(df['Date']).dt.year
-    df['DayOfYear'] = pd.to_datetime(df['Date']).dt.day_of_year
-    df['Quarter']   = pd.to_datetime(df['Date']).dt.quarter
-    df['Weekday']   = pd.to_datetime(df['Date']).dt.weekday + 1
-    df['Day']       = pd.to_datetime(df['Date']).dt.day
-    df['Month']     = pd.to_datetime(df['Date']).dt.month
-    df['Hour']      = pd.to_datetime(df['Date']).dt.hour
+    df['Date']      = pd.to_datetime(df['Date'], errors='coerce')
+    df['Year']      = df['Date'].dt.year
+    df['DayOfYear'] = df['Date'].dt.day_of_year
+    df['Quarter']   = df['Date'].dt.quarter
+    df['Weekday']   = df['Date'].dt.weekday + 1
+    df['Day']       = df['Date'].dt.day
+    df['Month']     = df['Date'].dt.month
+    df['Hour']      = df['Date'].dt.hour
     df['IsWeekend'] = (df['Weekday'] > 5).astype(int)
 
-    df['IsHoliday'] = pd.to_datetime(df['Date']).dt.hour
+    df['IsHoliday'] = df['Date'].apply(lambda date: is_holiday(date, ctr_code)).astype(int)
 
-    df.to_csv(path_to_file, index=False)
-
-def Reorder_CSV (
-        path_to_file:str, 
-        selected_columns: list
-    ) -> None:
-    df = pd.read_csv(path_to_file)
-    df_reordered = df[selected_columns]
+    df_reordered = df[selected_cols]
     df_reordered.to_csv(path_to_file, index=False)
+    print(f"Feature Design on {path_to_file} is Done!")
 
 def Sample_Manager(
         path_intermediate:str, 
         ctr_code:list,
-        selected_cols:list
+        selected_cols:list,
+        cols_to_drp:list = None
     ) -> None:
     # Iterate By Country
     for str_code in ctr_code:
@@ -206,13 +244,12 @@ def Sample_Manager(
         # Clean CSVs From Duplicate Date
         Pre_Join_Operations_CSV(os.path.join(path_intermediate, str_code))
         # Combine All Information
-        Join_CSVs (os.path.join(path_intermediate, str_code))
+        Join_CSVs(os.path.join(path_intermediate, str_code))
         # Prep Dataset
-        Prep_CSV(os.path.join(path_intermediate, f'{str_code}.csv'))
+        Post_Join_Operations(os.path.join(path_intermediate, f'{str_code}.csv'), cols_to_drp)
         # Feature Engineering
-        Feature_Design_Basic (os.path.join(path_intermediate, f'{str_code}.csv'))
-        # Reorder the columns
-        Reorder_CSV(os.path.join(path_intermediate, f'{str_code}.csv'), selected_cols)
+        Feature_Design_Basic(os.path.join(path_intermediate, f'{str_code}.csv'), str_code, selected_cols)
+
 
 def Test_Manager(
         path_to_file:str, 
@@ -246,12 +283,13 @@ if __name__ == "__main__":
     PATH_interim = "../../data/interim"
     ctr_code = ['ES', 'PT', 'PL', 'FR', 'SE']
     pattern = r'^(201[5-9]\.csv)$'
-    selected_cols = ['Date', 'Year', 'DayOfYear', 'Month', 'Quarter', 'Day', 'Hour', 'Weekday', 'IsWeekend', # Calender Specific
-                    # 'A', 'B', 'Load_Prev', # ????
-                     'Temperature', 'Irrad_direct', 'Irrad_difuse',                             # Weather Condition
-                     'Load'] 
+    selected_cols = ['Date', 'Year', 'DayOfYear', 'Month', 'Quarter', 'Day', 'Hour', 'Weekday', 'IsWeekend', # Calender Specific (8-Inputs)
+                     'Temperature', 'Irrad_direct', 'Irrad_difuse',                                          # Weather Condition (3-Inputs)
+                     'Load'                                                                                  # Target Load Value (1-Inputs)
+            ] 
+    cols_to_drp = ['A', 'B', 'Load_Prev']
     Copy_CSVs_For_Process(PATH_raw, PATH_interim, ctr_code)
-    Sample_Manager(PATH_interim, ctr_code, selected_cols)
+    Sample_Manager(PATH_interim, ctr_code, selected_cols, cols_to_drp)
     Test_Manager(PATH_interim, ctr_code)
 
 
