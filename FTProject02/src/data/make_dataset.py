@@ -235,6 +235,14 @@ def Manage_Datasets(
     
     return saved_dict
 
+def Read_Pickle(
+        file_path:str
+    ) -> dict:
+
+    with open(file_path, 'rb') as file:
+        data = pickle.load(file)
+    return data
+
 if __name__ == "__main__":
     np.set_printoptions(formatter={'float': lambda x: "{:5.1f}".format(x)})
     # Important Paths
@@ -253,8 +261,8 @@ if __name__ == "__main__":
     
     Copy_CSVs_For_Dataset(path_interim, path_processed)
     Manage_CSVs(path_processed, ctr_code, cols_to_drp, ff_format)
-    mydict = Manage_Datasets(path_processed, key_to_split, value_to_split, features_to_scale, look_back)
-
+    Manage_Datasets(path_processed, key_to_split, value_to_split, features_to_scale, look_back)
+    mydict = Read_Pickle(os.path.join(path_processed, 'Processed-Dataset.pickle'))
     print(f'PT_Daily:: Trainset-Length: {len(mydict["PT_Daily"]["trX"])} Testset-Length:{len(mydict["PT_Daily"]["tsX"])}')
     print(mydict["PT_Daily"]["trX"])
     print(' ')    
