@@ -1,8 +1,8 @@
 import os
 import pandas as pd
-from pathlib import Path
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import shutil
+
 # Hourly Prediction  (Use Dataset as it is)
 # Daily Prediction   (Reorder Based on Date)
 # Weekly Prediction  (Reorder Based on Weeks)
@@ -69,6 +69,7 @@ def Construct_Daily_CSV(
     df.drop(columns=cols_to_drp, inplace=True)
 
     aggregated_data = df.groupby(['Year', 'Month', 'Day']).agg({
+    'WeekOfMonth': 'first',
     'Weekday': 'first',
     'IsWeekend': 'first',
     'IsHoliday': 'first',
@@ -84,20 +85,19 @@ def Construct_Daily_CSV(
 def Construct_Weekly_CSV(
         path_to_file:str,
         ctr_code:str,
-        cols_to_drp:list = ['Date', 'DayOfYear', 'Quarter'],
+        cols_to_drp:list = ['Date', 'DayOfYear', 'Quarter', 'WeekOfYear'],
         ff_format:str='%.5f'
     ) -> None:
     df = pd.read_csv(path_to_file)
     df.drop(columns=cols_to_drp, inplace=True)
 
-    aggregated_data = df.groupby(['Year', 'Month', 'Day', 'WeekOfYear']).agg({
+    aggregated_data = df.groupby(['Year', 'Month', 'WeekOfMonth']).agg({
     'IsWeekend': 'first',
     'IsHoliday': 'first',
     'Temperature': 'mean',
     'Irrad_direct': 'mean',
     'Irrad_difuse': 'mean',
     'Load': 'mean'}).reset_index()
-    aggregated_data.drop(columns=['WeekOfYear'], inplace=True)
 
     aggregated_data['ID'] = range(len(aggregated_data))
     aggregated_data = aggregated_data[['ID'] + [col for col in aggregated_data.columns if col != 'ID']]
@@ -124,7 +124,6 @@ def Construct_Monthly_CSV(
     aggregated_data = aggregated_data[['ID'] + [col for col in aggregated_data.columns if col != 'ID']]
     aggregated_data.to_csv(os.path.join(os.path.dirname(path_to_file), f'{ctr_code}_Monthly.csv'), index=False, float_format=ff_format)
 
-
 def Copy_CSVs_For_Dataset(
         source_dir:str, 
         target_dir:str, 
@@ -147,6 +146,20 @@ def Manage_CSVs(
         Construct_Monthly_CSV(os.path.join(path_to_file, f'{str_code}_base.csv'), str_code, ff_format=ff_format)
         os.remove(os.path.join(path_to_file, f'{str_code}_base.csv'))
 
+def Create_Hourly_Dataset() -> None:
+    pass
+
+def Create_Daily_Dataset() -> None:
+    pass
+
+def Create_Monthly_Dataset() -> None:
+    pass
+
+def Create_Weekly_Dataset() -> None:
+    pass
+
+def Manage_Datasets() -> None:
+    pass
 
 if __name__ == "__main__":
     # Important Paths

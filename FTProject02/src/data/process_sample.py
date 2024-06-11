@@ -5,6 +5,7 @@ import re
 import shutil
 from pathlib import Path
 import holidays
+import glob
 
 def is_holiday(
         date: str, 
@@ -213,17 +214,20 @@ def Feature_Design_Basic (
     ) -> None :
 
     df = pd.read_csv(path_to_file)
-    df['Date']       = pd.to_datetime(df['Date'], errors='coerce')
-    df['Year']       = df['Date'].dt.year
-    df['DayOfYear']  = df['Date'].dt.day_of_year
-    df['Quarter']    = df['Date'].dt.quarter
-    df['Weekday']    = df['Date'].dt.weekday + 1
-    df['Day']        = df['Date'].dt.day
-    df['Month']      = df['Date'].dt.month
-    df['Hour']       = df['Date'].dt.hour
-    df['WeekOfYear'] = df['Date'].dt.isocalendar().week
-    df['IsWeekend']  = (df['Weekday'] > 5).astype(int)
-    df['IsHoliday']  = df['Date'].apply(lambda date: is_holiday(date, ctr_code)).astype(int)
+    df['Date']         = pd.to_datetime(df['Date'], errors='coerce')
+    df['Year']         = df['Date'].dt.year
+    df['DayOfYear']    = df['Date'].dt.day_of_year
+    df['Quarter']      = df['Date'].dt.quarter
+    df['Weekday']      = df['Date'].dt.weekday + 1
+    df['Day']          = df['Date'].dt.day
+    df['Month']        = df['Date'].dt.month
+    df['Hour']         = df['Date'].dt.hour
+    df['WeekOfYear']   = df['Date'].dt.isocalendar().week
+    df['WeekOfMonth']  = df['Date'].dt.day.apply(lambda x: x//7 + 1 if x < 28 else 4)
+    df['IsWeekend']    = (df['Weekday'] > 5).astype(int)
+    df['IsHoliday']    = df['Date'].apply(lambda date: is_holiday(date, ctr_code)).astype(int)
+
+    # df['Date'].dt.day // 7 + 1 if df['Date'].dt.day < 28 else 4
 
     df_reordered = df[selected_cols]
     df_reordered.to_csv(path_to_file, index=False)
@@ -273,17 +277,35 @@ def Test_Manager(
     
     return status_dict 
 
+def Clean_Directory(
+        directory_path: str
+    ) -> None:
+    # List all files and directories in the given directory
+    for item in os.listdir(directory_path):
+        item_path = os.path.join(directory_path, item)
+        
+        if os.path.isfile(item_path) or os.path.islink(item_path):
+            # If it's a file or symbolic link, delete it
+            os.unlink(item_path)
+        elif os.path.isdir(item_path):
+            # If it's a directory, delete it and all its contents
+            shutil.rmtree(item_path)
+
+    print(f"All contents of the directory '{directory_path}' have been deleted.")
+
+
 if __name__ == "__main__":
     # Important Paths
     path_raw     = "../../data/raw"
     path_interim = "../../data/interim"
     ctr_code = ['ES', 'PT', 'PL', 'FR', 'SE']
     pattern = r'^(201[5-9]\.csv)$'
-    selected_cols = ['Date', 'Year', 'DayOfYear', 'Month', 'Quarter', 'WeekOfYear', 'Day', 'Hour', 'Weekday', 'IsWeekend', 'IsHoliday', # Calender Specific (10-Inputs)
-                     'Temperature', 'Irrad_direct', 'Irrad_difuse',                                                                    # Weather Condition (3-Inputs)
-                     'Load'                                                                                                            # Target Load Value (1-Inputs)
+    selected_cols = ['Date', 'Year', 'DayOfYear', 'Month', 'Quarter', 'WeekOfYear', 'WeekOfMonth', 'Day', 'Hour', 'Weekday', 'IsWeekend', 'IsHoliday', # Cal-Specific (11-Inputs)
+                     'Temperature', 'Irrad_direct', 'Irrad_difuse',                                                                                    # Weather Condition (3-Inputs)
+                     'Load'                                                                                                                            # Target Load (1-Inputs)
         ] 
     cols_to_drp = ['A', 'B', 'Load_Prev']
+    Clean_Directory(path_interim)
     Copy_CSVs_To_Process(path_raw, path_interim, ctr_code)
     Sample_Manager(path_interim, ctr_code, selected_cols, cols_to_drp)
     Test_Manager(path_interim, ctr_code)
