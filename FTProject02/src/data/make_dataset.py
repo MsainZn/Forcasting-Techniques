@@ -17,9 +17,11 @@ def Train_Test_Split_OnYear(
         value_to_split:int 
     ) -> tuple:
     data = pd.read_csv(path_to_file)
-    train_set = data[data[key_to_split] < value_to_split]
-    test_set  = data[data[key_to_split] >= value_to_split]
+    train_set = data[data[key_to_split] < value_to_split].copy()
+    test_set  = data[data[key_to_split] >= value_to_split].copy()
     # print(f'Trainset-Length: {len(train_set)} Testset-Length:{len(test_set)}')
+    train_set.drop(columns=['Year'], inplace=True)    
+    test_set.drop(columns=['Year'], inplace=True)    
     return train_set, test_set
 
 def Apply_Scaling(
@@ -55,7 +57,7 @@ def Apply_Scaling(
 def Construct_Hourly_CSV(
         path_to_file:str,
         ctr_code:str,
-        cols_to_drp:list = ['Date', 'DayOfYear', 'WeekOfYear', 'Quarter'],
+        cols_to_drp:list,
         ff_format:str='%.5f',
         include_ID:bool=False
     ) -> None:
@@ -71,7 +73,7 @@ def Construct_Hourly_CSV(
 def Construct_Daily_CSV(
         path_to_file:str,
         ctr_code:str,
-        cols_to_drp:list = ['Date', 'DayOfYear', 'WeekOfYear', 'Quarter'],
+        cols_to_drp:list,
         ff_format:str='%.5f',
         include_ID:bool=False
     ) -> None:
@@ -84,20 +86,20 @@ def Construct_Daily_CSV(
     'IsWeekend': 'first',
     'IsHoliday': 'first',
     'Temperature': 'mean',
-    'Irrad_direct': 'mean',
-    'Irrad_difuse': 'mean',
+    # 'Irrad_direct': 'mean',
+    # 'Irrad_difuse': 'mean',
     'Load': 'mean'}).reset_index()
 
     if include_ID:
         aggregated_data['ID'] = [f'ID-{i}' for i in range(len(aggregated_data))]
         aggregated_data = aggregated_data[['ID'] + [col for col in aggregated_data.columns if col != 'ID']]
-        
+
     aggregated_data.to_csv(os.path.join(os.path.dirname(path_to_file), f'{ctr_code}_Daily.csv'), index=False, float_format=ff_format)
 
 def Construct_Weekly_CSV(
         path_to_file:str,
         ctr_code:str,
-        cols_to_drp:list = ['Date', 'DayOfYear', 'Quarter', 'WeekOfYear'],
+        cols_to_drp:list,
         ff_format:str='%.5f',
         include_ID:bool=False
     ) -> None:
@@ -106,20 +108,20 @@ def Construct_Weekly_CSV(
 
     aggregated_data = df.groupby(['Year', 'Month', 'WeekOfMonth']).agg({
     'Temperature': 'mean',
-    'Irrad_direct': 'mean',
-    'Irrad_difuse': 'mean',
+    # 'Irrad_direct': 'mean',
+    # 'Irrad_difuse': 'mean',
     'Load': 'mean'}).reset_index()
 
     if include_ID:
         aggregated_data['ID'] = [f'ID-{i}' for i in range(len(aggregated_data))]
         aggregated_data = aggregated_data[['ID'] + [col for col in aggregated_data.columns if col != 'ID']]
-
+    
     aggregated_data.to_csv(os.path.join(os.path.dirname(path_to_file), f'{ctr_code}_Weekly.csv'), index=False, float_format=ff_format)
 
 def Construct_Monthly_CSV(
         path_to_file:str,
         ctr_code:str,
-        cols_to_drp:list = ['Date', 'DayOfYear', 'WeekOfYear', 'Quarter'],
+        cols_to_drp:list,
         ff_format:str='%.5f',
         include_ID:bool=False
     ) -> None:
@@ -128,14 +130,14 @@ def Construct_Monthly_CSV(
 
     aggregated_data = df.groupby(['Year', 'Month']).agg({
     'Temperature': 'mean',
-    'Irrad_direct': 'mean',
-    'Irrad_difuse': 'mean',
+    # 'Irrad_direct': 'mean',
+    # 'Irrad_difuse': 'mean',
     'Load': 'mean'}).reset_index()
 
     if include_ID:
         aggregated_data['ID'] = [f'ID-{i}' for i in range(len(aggregated_data))]
         aggregated_data = aggregated_data[['ID'] + [col for col in aggregated_data.columns if col != 'ID']]
-
+    
     aggregated_data.to_csv(os.path.join(os.path.dirname(path_to_file), f'{ctr_code}_Monthly.csv'), index=False, float_format=ff_format)
 
 def Copy_CSVs_For_Dataset(
@@ -151,13 +153,14 @@ def Copy_CSVs_For_Dataset(
 def Manage_CSVs(
         path_to_file:str,
         ctr_code: list,
+        cols_to_drp:list,
         ff_format:str
 ) -> None:
     for str_code in ctr_code:    
-        Construct_Hourly_CSV(os.path.join(path_to_file, f'{str_code}_base.csv'), str_code, ff_format=ff_format)
-        Construct_Daily_CSV(os.path.join(path_to_file, f'{str_code}_base.csv'), str_code, ff_format=ff_format)
-        Construct_Weekly_CSV(os.path.join(path_to_file, f'{str_code}_base.csv'), str_code, ff_format=ff_format)
-        Construct_Monthly_CSV(os.path.join(path_to_file, f'{str_code}_base.csv'), str_code, ff_format=ff_format)
+        Construct_Hourly_CSV(os.path.join(path_to_file, f'{str_code}_base.csv'), str_code, cols_to_drp, ff_format=ff_format)
+        Construct_Daily_CSV(os.path.join(path_to_file, f'{str_code}_base.csv'), str_code, cols_to_drp, ff_format=ff_format)
+        Construct_Weekly_CSV(os.path.join(path_to_file, f'{str_code}_base.csv'), str_code, cols_to_drp, ff_format=ff_format)
+        Construct_Monthly_CSV(os.path.join(path_to_file, f'{str_code}_base.csv'), str_code, cols_to_drp, ff_format=ff_format)
         os.remove(os.path.join(path_to_file, f'{str_code}_base.csv'))
 
 def Create_Sequence(
@@ -171,8 +174,16 @@ def Create_Sequence(
     Y = []
     
     for i in range(look_back, nrows):
-        X.append(dataset.iloc[i - look_back: i, :].values) # dataset.columns != target_column
-        Y.append(dataset.iloc[i, :]) # dataset.columns != target_column
+        # Get only the target column for the look-back rows
+        look_back_rows = dataset.iloc[i - look_back: i, target_column].values.reshape(-1, 1)
+        # Get the current row excluding the target column
+        current_row_ex_target = dataset.iloc[i, dataset.columns != dataset.columns[target_column]].values
+        # Combine the look-back rows and the current row (without the target column)
+        combined_rows = np.hstack([current_row_ex_target, look_back_rows.flatten()])
+        X.append(combined_rows)
+        # Target value is the current row's target column value
+        Y.append(dataset.iloc[i, target_column])
+
     
     return np.array(X), np.array(Y)
 
@@ -230,17 +241,21 @@ if __name__ == "__main__":
     path_processed = "../../data/processed"
     path_interim = "../../data/interim"
     ctr_code = ['ES', 'PT', 'PL', 'FR', 'SE']
-    features_to_scale = ['Temperature', 'Irrad_direct', 'Irrad_difuse', 'Load']
+    cols_to_drp = ['Date', 'DayOfYear', 'WeekOfYear', 'Quarter', 'Irrad_direct', 'Irrad_difuse']
+    features_to_scale = ['Temperature', 
+                        #  'Irrad_direct', 
+                        #  'Irrad_difuse', 
+                         'Load']
     ff_format = '%.4f'
     key_to_split = 'Year'
     value_to_split = 2019
-    look_back=2
+    look_back=3
     
     Copy_CSVs_For_Dataset(path_interim, path_processed)
-    Manage_CSVs(path_processed, ctr_code, ff_format)
+    Manage_CSVs(path_processed, ctr_code, cols_to_drp, ff_format)
     mydict = Manage_Datasets(path_processed, key_to_split, value_to_split, features_to_scale, look_back)
 
-    # print(f'PT_Monthly:: Trainset-Length: {len(mydict["PT_Monthly"]["trX"])} Testset-Length:{len(mydict["PT_Monthly"]["tsX"])}')
-    # print(mydict["PT_Monthly"]["trX"])
-    # print(' ')    
-    # print(mydict["PT_Monthly"]["trY"])    
+    print(f'PT_Daily:: Trainset-Length: {len(mydict["PT_Daily"]["trX"])} Testset-Length:{len(mydict["PT_Daily"]["tsX"])}')
+    print(mydict["PT_Daily"]["trX"])
+    print(' ')    
+    print(mydict["PT_Daily"]["trY"])    
