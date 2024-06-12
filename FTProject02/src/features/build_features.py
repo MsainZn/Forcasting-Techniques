@@ -195,8 +195,12 @@ def Create_Dataset(
         look_back:int
     ):
     train_set, test_set = Train_Test_Split_OnYear(path_to_file, key_to_split, value_to_split)
-    train_set_scaled, test_set_scaled, scaler = Apply_Scaling(train_set, test_set, features_to_scale)
     
+    if features_to_scale is not None:
+        train_set_scaled, test_set_scaled, scaler = Apply_Scaling(train_set, test_set, features_to_scale)
+    else:
+        train_set_scaled, test_set_scaled, scaler = train_set, test_set, None
+        
     train_set_X, train_set_Y = Create_Sequence(train_set_scaled, look_back)
     test_set_X, test_set_Y   = Create_Sequence(test_set_scaled, look_back)
 
