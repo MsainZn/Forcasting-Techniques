@@ -1,269 +1,315 @@
 import os
+import xlwings as xw
 import pandas as pd
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
+import re
 import shutil
-import numpy as np
-import pickle
+from pathlib import Path
+import holidays
+import glob
 
-# Hourly Prediction  (Use Dataset as it is)
-# Daily Prediction   (Reorder Based on Date)
-# Weekly Prediction  (Reorder Based on Weeks)
-# Monthly Prediction (Reorder Based on Months)
-# Yearly Prediction  (Reorder Based on Years)
+def is_holiday(
+        date: str, 
+        country: str
+    ) -> bool:
+    """
+    Check if a given date is a holiday in the specified country.
 
-def Train_Test_Split_OnYear(
-        path_to_file:str,
-        key_to_split:str,
-        value_to_split:int 
-    ) -> tuple:
-    data = pd.read_csv(path_to_file)
-    train_set = data[data[key_to_split] < value_to_split].copy()
-    test_set  = data[data[key_to_split] >= value_to_split].copy()
-    # print(f'Trainset-Length: {len(train_set)} Testset-Length:{len(test_set)}')
-    train_set.drop(columns=['Year'], inplace=True)    
-    test_set.drop(columns=['Year'], inplace=True)    
-    return train_set, test_set
+    Parameters:
+    date (datetime.date): The date to check.
+    country (str): The country code (ISO 3166-1 alpha-2).
 
-def Apply_Scaling(
-        train_set: pd.DataFrame, 
-        test_set: pd.DataFrame, 
-        scalable_features: list, 
-        scaler_type: str = 'standard', 
-    ) -> tuple:
-
-    Original_order = train_set.columns.tolist()
-    # Separate features to scale and other columns
-    train_set_scalable    = train_set[scalable_features]
-    test_set_scalable     = test_set[scalable_features]
-    train_set_categorical = train_set.drop(columns=scalable_features)
-    test_set_categorical  = test_set.drop(columns=scalable_features)
-    # Apply the scaler to the features
-    scaler = StandardScaler() if scaler_type == 'standard' else MinMaxScaler()
-    train_set_scaled = scaler.fit_transform(train_set_scalable)
-    test_set_scaled  = scaler.transform(test_set_scalable)
-    # Convert the scaled features back to a DataFrame
-    train_set_scaled_features = pd.DataFrame(train_set_scaled, columns=scalable_features)
-    test_set_scaled_features  = pd.DataFrame(test_set_scaled,  columns=scalable_features)
-    # Combine the scaled features with other columns
-    train_set_scaled_data = pd.concat([train_set_categorical.reset_index(drop=True), train_set_scaled_features.reset_index(drop=True)], axis=1)
-    test_set_scaled_data = pd.concat([test_set_categorical.reset_index(drop=True),   test_set_scaled_features.reset_index(drop=True)], axis=1)
-
-    # Reordering Dataframe as Before
-    train_set_reordered = train_set_scaled_data[Original_order]
-    test_set_reordered = test_set_scaled_data[Original_order]
-
-    return train_set_reordered, test_set_reordered, scaler
-
-def Construct_Hourly_CSV(
-        path_to_file:str,
-        ctr_code:str,
-        cols_to_drp:list,
-        ff_format:str='%.5f',
-        include_ID:bool=False
-    ) -> None:
-    df = pd.read_csv(path_to_file)
-    df.drop(columns=cols_to_drp, inplace=True)
-
-    if include_ID:
-        df['ID'] = [f'ID-{i}' for i in range(len(df))] 
-        df = df[['ID'] + [col for col in df.columns if col != 'ID']]
-
-    df.to_csv(os.path.join(os.path.dirname(path_to_file), f'{ctr_code}_Hourly.csv'), index=False, float_format=ff_format)
-
-def Construct_Daily_CSV(
-        path_to_file:str,
-        ctr_code:str,
-        cols_to_drp:list,
-        ff_format:str='%.5f',
-        include_ID:bool=False
-    ) -> None:
-    df = pd.read_csv(path_to_file)
-    df.drop(columns=cols_to_drp, inplace=True)
-
-    aggregated_data = df.groupby(['Year', 'Month', 'Day']).agg({
-    'WeekOfMonth': 'first',
-    'Weekday': 'first',
-    'IsWeekend': 'first',
-    'IsHoliday': 'first',
-    'Temperature': 'mean',
-    # 'Irrad_direct': 'mean',
-    # 'Irrad_difuse': 'mean',
-    'Load': 'mean'}).reset_index()
-
-    if include_ID:
-        aggregated_data['ID'] = [f'ID-{i}' for i in range(len(aggregated_data))]
-        aggregated_data = aggregated_data[['ID'] + [col for col in aggregated_data.columns if col != 'ID']]
-
-    aggregated_data.to_csv(os.path.join(os.path.dirname(path_to_file), f'{ctr_code}_Daily.csv'), index=False, float_format=ff_format)
-
-def Construct_Weekly_CSV(
-        path_to_file:str,
-        ctr_code:str,
-        cols_to_drp:list,
-        ff_format:str='%.5f',
-        include_ID:bool=False
-    ) -> None:
-    df = pd.read_csv(path_to_file)
-    df.drop(columns=cols_to_drp, inplace=True)
-
-    aggregated_data = df.groupby(['Year', 'Month', 'WeekOfMonth']).agg({
-    'Temperature': 'mean',
-    # 'Irrad_direct': 'mean',
-    # 'Irrad_difuse': 'mean',
-    'Load': 'mean'}).reset_index()
-
-    if include_ID:
-        aggregated_data['ID'] = [f'ID-{i}' for i in range(len(aggregated_data))]
-        aggregated_data = aggregated_data[['ID'] + [col for col in aggregated_data.columns if col != 'ID']]
+    Returns:
+    bool: True if the date is a holiday in the specified country, False otherwise.
+    """
+    # Mapping of country codes to their respective holiday functions
+    holiday_countries = {
+        'FR': holidays.France,
+        'PT': holidays.Portugal,
+        'PL': holidays.Poland,
+        'ES': holidays.Spain,
+        'SE': holidays.Sweden
+    }
     
-    aggregated_data.to_csv(os.path.join(os.path.dirname(path_to_file), f'{ctr_code}_Weekly.csv'), index=False, float_format=ff_format)
-
-def Construct_Monthly_CSV(
-        path_to_file:str,
-        ctr_code:str,
-        cols_to_drp:list,
-        ff_format:str='%.5f',
-        include_ID:bool=False
-    ) -> None:
-    df = pd.read_csv(path_to_file)
-    df.drop(columns=cols_to_drp, inplace=True)
-
-    aggregated_data = df.groupby(['Year', 'Month']).agg({
-    'Temperature': 'mean',
-    # 'Irrad_direct': 'mean',
-    # 'Irrad_difuse': 'mean',
-    'Load': 'mean'}).reset_index()
-
-    if include_ID:
-        aggregated_data['ID'] = [f'ID-{i}' for i in range(len(aggregated_data))]
-        aggregated_data = aggregated_data[['ID'] + [col for col in aggregated_data.columns if col != 'ID']]
+    # Ensure the country code is supported
+    if country not in holiday_countries:
+        raise ValueError(f"Country code '{country}' is not supported.")
     
-    aggregated_data.to_csv(os.path.join(os.path.dirname(path_to_file), f'{ctr_code}_Monthly.csv'), index=False, float_format=ff_format)
+    # Retrieve the holiday list for the specific country and year
+    country_holidays = holiday_countries[country](years=date.year)
+    
+    # Check if the date is in the list of holidays for that country
+    return date in country_holidays
 
-def Copy_CSVs_For_Dataset(
+def Copy_CSVs_To_Process (
         source_dir:str, 
         target_dir:str, 
+        country_code:list
+    ) -> None:
+    
+    # Create Directory in Inter-class
+    for lang in country_code:
+        lang_dir = os.path.join(target_dir, lang)
+        os.makedirs(lang_dir, exist_ok=True)
+    
+    # Iterate through files in the source directory
+    for file_name in os.listdir(source_dir):
+        source_path = os.path.join(source_dir, file_name)
+
+        # Check if the file is an Excel file
+        if file_name.endswith('.xlsx'):
+            # Determine the language from the file name suffix
+            language = file_name.split('_')[-1].split('.')[0]
+
+            if language in country_code:
+                # Copy the file to the appropriate language directory
+                target_path = os.path.join(target_dir, language, file_name)
+                shutil.copy(source_path, target_path)
+    print(f"Files Are Transfered to Intermediate Dataset Location: {target_dir}")
+
+def Excel_Sheet_Manager (
+        path_to_excel:str, 
+        excel_name:str, 
+        path_to_save:str
+    ) -> None:
+    
+    with xw.App(visible=False) as app:
+        wb = app.books.open(os.path.join(path_to_excel, excel_name)) 
+        for sheet in wb.sheets:
+            wb_new = app.books.add()
+            sheet.copy(after=wb_new.sheets[0])
+            wb_new.sheets[0].delete()
+           
+            # wb_new.save(os.path.join(path_to_save, f'{os.path.splitext(excel_name)[0]}_{sheet.name}.xlsx'))
+            wb_new.save(os.path.join(path_to_save, f'{sheet.name}.xlsx'))
+            Create_CSV(os.path.join(path_to_save, f'{sheet.name}.xlsx'),os.path.join(path_to_save, f'{sheet.name}.csv'))
+            wb_new.close()
+            os.remove(os.path.join(path_to_save, f'{sheet.name}.xlsx'))
+
+def Create_CSV(
+        input_file:str, 
+        output_file:str, 
+        skip_rows:int = 5, 
+        header_idx:int = 4
     )-> None:
-    for filename in os.listdir(source_dir):
-        name, extension = os.path.splitext(filename)
-        new_filename = f'{name}_base{extension}'
-        shutil.copy(os.path.join(source_dir, filename), os.path.join(target_dir, new_filename))
-    print("Files Are Recieved!")
+    # Read the Excel file
+    df = pd.read_excel(input_file, header=header_idx)
+    # Skip the first 5 rows
+    df = df.iloc[skip_rows:]
+    # Write the DataFrame to a CSV file
+    df.to_csv(output_file, index=False)
 
-def Manage_CSVs(
-        path_to_file:str,
-        ctr_code: list,
-        cols_to_drp:list,
-        ff_format:str
-) -> None:
-    for str_code in ctr_code:    
-        Construct_Hourly_CSV(os.path.join(path_to_file, f'{str_code}_base.csv'), str_code, cols_to_drp, ff_format=ff_format)
-        Construct_Daily_CSV(os.path.join(path_to_file, f'{str_code}_base.csv'), str_code, cols_to_drp, ff_format=ff_format)
-        Construct_Weekly_CSV(os.path.join(path_to_file, f'{str_code}_base.csv'), str_code, cols_to_drp, ff_format=ff_format)
-        Construct_Monthly_CSV(os.path.join(path_to_file, f'{str_code}_base.csv'), str_code, cols_to_drp, ff_format=ff_format)
-        os.remove(os.path.join(path_to_file, f'{str_code}_base.csv'))
+def Create_CSVs(
+        path_input: str, 
+        pattern:str = r'^(201[5-9]\.csv)$'
+    ) -> None:
+    # Iterate Through all files
+    file_names = os.listdir(path_input)
+    for idx, name in enumerate(file_names):
+        # Create Seperate Directories
+        save_dir_path = os.path.join(path_input, os.path.splitext(name)[0])
+        if not os.path.exists(save_dir_path):
+            os.mkdir(save_dir_path)
+        # Process xlsx files
+        Excel_Sheet_Manager(path_input, name, save_dir_path)
+        Merge_CSVs(save_dir_path, pattern)
+        shutil.rmtree(save_dir_path)
+        os.remove(os.path.join(path_input, name))
+        print(f'{name} [{100 * ((idx+1)/file_names.__len__())}%]!')
+    # Operation Successful    
+    print(f"Taransform Completed!")
 
-def Create_Sequence(
-        dataset: pd.DataFrame, 
-        look_back:int,
-        target_column:int = -1     
-    ) -> tuple:
-
-    nrows, ncols = dataset.shape
-    X = []
-    Y = []
+def Filter_CSVs(
+        path_to_dir:str, 
+        pattern:str
+    )->list: 
+    # Get a list of CSV file paths in the input directory that match the pattern
+    csv_files = sorted([
+        os.path.join(path_to_dir, f) for f in os.listdir(path_to_dir) 
+        if re.match(pattern, f)
+    ])
     
-    for i in range(look_back, nrows):
-        # Get only the target column for the look-back rows
-        look_back_rows = dataset.iloc[i - look_back: i, target_column].values.reshape(-1, 1)
-        # Get the current row excluding the target column
-        current_row_ex_target = dataset.iloc[i, dataset.columns != dataset.columns[target_column]].values
-        # Combine the look-back rows and the current row (without the target column)
-        combined_rows = np.hstack([current_row_ex_target, look_back_rows.flatten()])
-        X.append(combined_rows)
-        # Target value is the current row's target column value
-        Y.append(dataset.iloc[i, target_column])
+    return csv_files
 
+def Merge_CSVs(
+        path_to_dir:str, 
+        pattern:str
+    ) -> None:
+    # Get a list of CSV file paths in the input directory
+    csv_files = Filter_CSVs(path_to_dir, pattern)
     
-    return np.array(X), np.array(Y)
-
-def Create_Dataset(
-        path_to_file:str,
-        key_to_split:str,
-        value_to_split:int,
-        features_to_scale:list,
-        look_back:int
-    ):
-    train_set, test_set = Train_Test_Split_OnYear(path_to_file, key_to_split, value_to_split)
-    train_set_scaled, test_set_scaled, scaler = Apply_Scaling(train_set, test_set, features_to_scale)
+    # Initialize an empty DataFrame to hold the combined data
+    df_combined = pd.DataFrame()
     
-    train_set_X, train_set_Y = Create_Sequence(train_set_scaled, look_back)
-    test_set_X, test_set_Y   = Create_Sequence(test_set_scaled, look_back)
-
-    return train_set_X, train_set_Y, test_set_X, test_set_Y, scaler
-
-def Manage_Datasets(
-        path_to_dir:str,
-        key_to_split:str,
-        value_to_split:int,
-        features_to_scale:list,
-        look_back:int   
-    ) -> dict:
-    saved_dict = {}
-    filenames = os.listdir(path_to_dir)
-    contains_name = lambda s, names: any(name in s for name in names)
-    for fname in filenames:
-        if contains_name(fname, ['Daily', 'Hourly', 'Weekly', 'Monthly']):
-            train_set_X, train_set_Y, \
-            test_set_X, test_set_Y,   \
-            scaler = Create_Dataset(os.path.join(path_to_dir, fname),
-                                    key_to_split,
-                                    value_to_split,
-                                    features_to_scale,
-                                    look_back)
-            
-            saved_dict[os.path.splitext(fname)[0]] = {
-                'trX': train_set_X,
-                'trY': train_set_Y,
-                'tsX': test_set_X,
-                'tsY': test_set_Y,
-                'scaler': scaler
-            }
+    # Iterate over each CSV file path
+    for i, csv_file in enumerate(csv_files):
+        # Read the CSV file into a DataFrame
+        df = pd.read_csv(csv_file)
         
-    with open(os.path.join(path_processed, 'Processed-Dataset.pickle'), 'wb') as f:
-        pickle.dump(saved_dict, f)
+        # Skip headers for all files except the first one
+        if i > 0:
+            df = df.iloc[1:]
+        
+        # Append the DataFrame to the combined DataFrame
+        df_combined = pd.concat([df_combined, df], ignore_index=True)
     
-    return saved_dict
+    # Write the combined DataFrame to a new CSV file
+    path = Path(path_to_dir)
+    parent_dir = path.parent
+    output_file_path = parent_dir / f"{path.name}.csv"
+    df_combined.to_csv(output_file_path, index=False)
+    # df_combined.to_csv(os.path.join(f"{path_to_dir}/..", f'{os.path.basename(path_to_dir)}.csv'), index=False)
 
-def Read_Pickle(
-        file_path:str
+def Pre_Join_Operations_CSV (
+        path_to_dir:str
+    ) -> None :
+    file_names = os.listdir(path_to_dir)
+    for file_name in file_names:
+        csv_path = os.path.join(path_to_dir, file_name)
+        load_df = pd.read_csv(csv_path)
+        # Remove Duplicate Elemnts
+        load_df.drop_duplicates(subset='Date', keep='first', inplace=True)
+        load_df.to_csv(csv_path, index=False)
+
+def Join_CSVs (
+        path_to_dir:str
+    ) -> None :
+    
+    # Read each CSV file into a DataFrame
+    path = Path(path_to_dir)
+    holidays_df = pd.read_csv(path / f'Holidays_{path.name}.csv')
+    irradiance_df = pd.read_csv(path / f'Irradiance_{path.name}.csv')
+    load_df = pd.read_csv(path / f'Load_{path.name}.csv')
+    temperature_df = pd.read_csv(path / f'Temperature_{path.name}.csv')
+
+    merged_df = holidays_df
+    merged_df = pd.merge(merged_df, irradiance_df, on=['Date', 'Month', 'Day', 'Hour'], how='outer')
+    merged_df = pd.merge(merged_df, load_df, on=['Date', 'Month', 'Day', 'Hour'], how='outer')
+    merged_df = pd.merge(merged_df, temperature_df, on=['Date', 'Month', 'Day', 'Hour'], how='outer')
+
+    output_file_path = path.parent / f'{path.name}.csv'
+    merged_df.to_csv(output_file_path, index=False)
+    shutil.rmtree(path_to_dir)
+
+def Post_Join_Operations (
+        path_to_file:str, 
+        mthd:str = 'drp',
+        cols_to_drp:list = None
+    ) -> None:
+    
+    df = pd.read_csv(path_to_file)
+
+    # Drop Useless Columns
+    df_rem = df.drop(columns=cols_to_drp) if cols_to_drp is not None else df
+    df_rem = df_rem.infer_objects(copy=False)
+
+    # Remove Nan Elements
+    df_cleaned = df_rem.dropna() if mthd == 'drp' else df_rem.interpolate(method='linear')
+    df_cleaned.to_csv(path_to_file, index=False)
+    print(f"Post-Join Operations on {path_to_file} is Done!")
+
+def Feature_Design_Basic (
+        path_to_file:str,
+        ctr_code: str,
+        selected_cols: list
+    ) -> None :
+
+    df = pd.read_csv(path_to_file)
+    df['Date']         = pd.to_datetime(df['Date'], errors='coerce')
+    df['Year']         = df['Date'].dt.year
+    df['DayOfYear']    = df['Date'].dt.day_of_year
+    df['Quarter']      = df['Date'].dt.quarter
+    df['Weekday']      = df['Date'].dt.weekday + 1
+    df['Day']          = df['Date'].dt.day
+    df['Month']        = df['Date'].dt.month
+    df['Hour']         = df['Date'].dt.hour
+    df['WeekOfYear']   = df['Date'].dt.isocalendar().week
+    df['WeekOfMonth']  = df['Date'].dt.day.apply(lambda x: x//7 + 1 if x < 28 else 4)
+    df['IsWeekend']    = (df['Weekday'] > 5).astype(int)
+    df['IsHoliday']    = df['Date'].apply(lambda date: is_holiday(date, ctr_code)).astype(int)
+
+    # df['Date'].dt.day // 7 + 1 if df['Date'].dt.day < 28 else 4
+
+    df_reordered = df[selected_cols]
+    df_reordered.to_csv(path_to_file, index=False)
+    print(f"Feature Design on {path_to_file} is Done!")
+
+def Sample_Manager(
+        path_intermediate:str, 
+        ctr_code:list,
+        selected_cols:list,
+        cols_to_drp:list = None
+    ) -> None:
+    # Iterate By Country
+    for str_code in ctr_code:
+        # Create CSVs
+        Create_CSVs(os.path.join(path_intermediate, str_code), pattern)
+        # Clean CSVs From Duplicate Date
+        Pre_Join_Operations_CSV(os.path.join(path_intermediate, str_code))
+        # Combine All Information
+        Join_CSVs(os.path.join(path_intermediate, str_code))
+        # Prep Dataset
+        Post_Join_Operations(os.path.join(path_intermediate, f'{str_code}.csv'), cols_to_drp)
+        # Feature Engineering
+        Feature_Design_Basic(os.path.join(path_intermediate, f'{str_code}.csv'), str_code, selected_cols)
+
+def Test_Manager(
+        path_to_file:str, 
+        ctr_code: list
     ) -> dict:
+    status_dict = {}
+    for code in ctr_code:
+        print(f"For code {code}:")
+        df = pd.read_csv(os.path.join(path_to_file, f'{code}.csv'))
+        # Check for missing values or empty elements
+        total_nan_count = df.isnull().sum().sum()
+        total_empty_count = (df.astype(str) == '').sum().sum()
+        print("Total count of NaN values:", total_nan_count)
+        print("Total count of Empty values:", total_empty_count)
+        status_dict[code] = (total_nan_count, total_empty_count)
+        nan_indices = df.isnull().any(axis=1)
+        nan_columns = df.columns[df.isnull().any()]
+        # Print out the rows and columns where NaN values occur
+        print("Rows with NaN values:")
+        print(df[nan_indices])
 
-    with open(file_path, 'rb') as file:
-        data = pickle.load(file)
-    return data
+        print("\nColumns with NaN values:")
+        print(nan_columns)
+    
+    return status_dict 
+
+def Clean_Directory(
+        directory_path: str
+    ) -> None:
+    # List all files and directories in the given directory
+    for item in os.listdir(directory_path):
+        item_path = os.path.join(directory_path, item)
+        
+        if os.path.isfile(item_path) or os.path.islink(item_path):
+            # If it's a file or symbolic link, delete it
+            os.unlink(item_path)
+        elif os.path.isdir(item_path):
+            # If it's a directory, delete it and all its contents
+            shutil.rmtree(item_path)
+
+    print(f"All contents of the directory '{directory_path}' have been deleted.")
+
 
 if __name__ == "__main__":
-    np.set_printoptions(formatter={'float': lambda x: "{:5.1f}".format(x)})
     # Important Paths
-    path_processed = "../../data/processed"
+    path_raw     = "../../data/raw"
     path_interim = "../../data/interim"
     ctr_code = ['ES', 'PT', 'PL', 'FR', 'SE']
-    cols_to_drp = ['Date', 'DayOfYear', 'WeekOfYear', 'Quarter', 'Irrad_direct', 'Irrad_difuse']
-    features_to_scale = ['Temperature', 
-                        #  'Irrad_direct', 
-                        #  'Irrad_difuse', 
-                         'Load']
-    ff_format = '%.4f'
-    key_to_split = 'Year'
-    value_to_split = 2019
-    look_back=3
-    
-    Copy_CSVs_For_Dataset(path_interim, path_processed)
-    Manage_CSVs(path_processed, ctr_code, cols_to_drp, ff_format)
-    Manage_Datasets(path_processed, key_to_split, value_to_split, features_to_scale, look_back)
-    mydict = Read_Pickle(os.path.join(path_processed, 'Processed-Dataset.pickle'))
-    print(f'PT_Daily:: Trainset-Length: {len(mydict["PT_Daily"]["trX"])} Testset-Length:{len(mydict["PT_Daily"]["tsX"])}')
-    print(mydict["PT_Daily"]["trX"])
-    print(' ')    
-    print(mydict["PT_Daily"]["trY"])    
+    pattern = r'^(201[5-9]\.csv)$'
+    selected_cols = ['Date', 'Year', 'DayOfYear', 'Month', 'Quarter', 'WeekOfYear', 'WeekOfMonth', 'Day', 'Hour', 'Weekday', 'IsWeekend', 'IsHoliday', # Cal-Specific (11-Inputs)
+                     'Temperature', 'Irrad_direct', 'Irrad_difuse',                                                                                    # Weather Condition (3-Inputs)
+                     'Load'                                                                                                                            # Target Load (1-Inputs)
+        ] 
+    cols_to_drp = ['A', 'B', 'Load_Prev']
+    Clean_Directory(path_interim)
+    Copy_CSVs_To_Process(path_raw, path_interim, ctr_code)
+    Sample_Manager(path_interim, ctr_code, selected_cols, cols_to_drp)
+    Test_Manager(path_interim, ctr_code)
+
+
+
+
