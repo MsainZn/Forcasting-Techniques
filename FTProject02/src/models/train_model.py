@@ -2,8 +2,9 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.metrics import mean_squared_error
 
-def train_model(
+def train_DL_model(
         model, 
         criterion, 
         optimizer, 
@@ -19,8 +20,8 @@ def train_model(
         model.train()
         running_loss = 0.0
         
-        mse_trn, r2_trn, avg_loss_trn = evaluate_model(model, criterion, train_loader)
-        mse_tst, r2_tst, avg_loss_tst = evaluate_model(model, criterion, test_loader)
+        mse_trn, r2_trn, avg_loss_trn = evaluate_DL_model(model, criterion, train_loader)
+        mse_tst, r2_tst, avg_loss_tst = evaluate_DL_model(model, criterion, test_loader)
 
         print(f'MSE-Train = {mse_trn:5.4f} R2-Score = {r2_trn:5.4f} AVG-Loss = {avg_loss_trn:5.4f}')
         print(f'MSE-Test  = {mse_tst:5.4f} R2-Score = {r2_tst:5.4f} AVG-Loss = {avg_loss_tst:5.4f}')
@@ -41,15 +42,15 @@ def train_model(
         epoch_loss = running_loss / len(train_loader.dataset)
         print(f"Epoch {epoch+1}/{num_epochs}, Loss: {epoch_loss:.4f}")
 
-    mse_trn, r2_trn, avg_loss_trn = evaluate_model(model, criterion, train_loader)
-    mse_tst, r2_tst, avg_loss_tst = evaluate_model(model, criterion, test_loader)
+    mse_trn, r2_trn, avg_loss_trn = evaluate_DL_model(model, criterion, train_loader)
+    mse_tst, r2_tst, avg_loss_tst = evaluate_DL_model(model, criterion, test_loader)
 
     print(f'MSE-Train-Final = {mse_trn:5.4f} R2-Score = {r2_trn:5.4f} AVG-Loss = {avg_loss_trn:5.4f}')
     print(f'MSE-Test-Final  = {mse_tst:5.4f} R2-Score = {r2_tst:5.4f} AVG-Loss = {avg_loss_tst:5.4f}')
 
     return model, mse_trn, r2_trn, avg_loss_trn, mse_tst, r2_tst, avg_loss_tst
 
-def evaluate_model(
+def evaluate_DL_model(
             model, 
             criterion, 
             data_loader
@@ -78,3 +79,11 @@ def evaluate_model(
     avg_loss = total_loss / len(data_loader.dataset)
     
     return mse, r2, avg_loss
+
+def train_ML_model(model, X_train, y_train):
+    model.fit(X_train, y_train)
+
+def evaluate_ML_model(model, X_test, y_test):
+    predictions = model.predict(X_test)
+    rmse = model.calculate_rmse(y_test, predictions)
+    return rmse

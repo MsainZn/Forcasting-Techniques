@@ -17,4 +17,23 @@ for name, model in models.items():
     train_model(model, criterion, optimizer_instance, train_loader)
     print(f"{name} trained successfully.")
 
+****************************************************************************
+
+# Define models
+models = {
+    "SVM": SVM_LF(),
+    "KNN": KNN_LF(),
+    "RandomForest": RandomForest_LF()
+}
+
+# Training loop
+for name, model in models.items():
+    print(f"Training {name}...")
+    train_model(model, X_train, y_train)
+    print(f"{name} trained successfully.")
+    
+    print(f"Evaluating {name}...")
+    rmse = evaluate_model(model, X_test, y_test)
+    print(f"{name} RMSE: {rmse}")
+
 '''

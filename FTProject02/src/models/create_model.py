@@ -74,12 +74,6 @@ class SVM_LF:
                          gamma=gamma, 
                          max_iter=max_iter)
 
-    def train(self, X_train, y_train):
-        self.model.fit(X_train, y_train)
-
-    def predict(self, X):
-        return self.model.predict(X)
-
     def calculate_rmse(self, true_values, predicted_values):
         return mean_squared_error(true_values, predicted_values, squared=False)
 
@@ -118,12 +112,6 @@ class KNN_LF:
                             leaf_size= leaf_size,
                             p=p)
 
-    def train(self, X_train, y_train) -> None:
-        self.model.fit(X_train, y_train)
-
-    def predict(self, X):
-        return self.model.predict(X)
-
     def calculate_rmse(self, true_values, predicted_values):
         return mean_squared_error(true_values, predicted_values, squared=False)
 
@@ -159,12 +147,6 @@ class RandomForest_LF:
                         random_state=random_state,
                         verbose=1
                     )
-
-    def train(self, X_train, y_train):
-        self.model.fit(X_train, y_train)
-
-    def predict(self, X):
-        return self.model.predict(X)
 
     def calculate_rmse(self, true_values, predicted_values):
         return mean_squared_error(true_values, predicted_values, squared=False)
