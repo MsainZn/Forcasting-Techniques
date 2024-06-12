@@ -203,20 +203,22 @@ def Create_Dataset(
     return train_set_X, train_set_Y, test_set_X, test_set_Y, scaler
 
 def Manage_Datasets(
-        path_to_dir:str,
+        path_to_dir_src:str,
+        path_to_dir_final: str, 
+        pickle_name:str,
         key_to_split:str,
         value_to_split:int,
         features_to_scale:list,
-        look_back:int   
+        look_back:int
     ) -> dict:
     saved_dict = {}
-    filenames = os.listdir(path_to_dir)
+    filenames = os.listdir(path_to_dir_src)
     contains_name = lambda s, names: any(name in s for name in names)
     for fname in filenames:
         if contains_name(fname, ['Daily', 'Hourly', 'Weekly', 'Monthly']):
             train_set_X, train_set_Y, \
             test_set_X, test_set_Y,   \
-            scaler = Create_Dataset(os.path.join(path_to_dir, fname),
+            scaler = Create_Dataset(os.path.join(path_to_dir_src, fname),
                                     key_to_split,
                                     value_to_split,
                                     features_to_scale,
@@ -230,7 +232,7 @@ def Manage_Datasets(
                 'scaler': scaler
             }
         
-    with open(os.path.join(path_processed, 'Processed-Dataset.pickle'), 'wb') as f:
+    with open(os.path.join(path_to_dir_final, pickle_name), 'wb') as f:
         pickle.dump(saved_dict, f)
     
     return saved_dict
@@ -244,10 +246,17 @@ def Read_Pickle(
     return data
 
 if __name__ == "__main__":
+
+    # Print Setup
     np.set_printoptions(formatter={'float': lambda x: "{:5.1f}".format(x)})
-    # Important Paths
+
+    # Default Paths
     path_processed = "../../data/processed"
     path_interim = "../../data/interim"
+    path_to_dir_final = "../../data/final"
+    pickle_name = 'Processed-Dataset.pickle'
+
+    # Default Parameters
     ctr_code = ['ES', 'PT', 'PL', 'FR', 'SE']
     cols_to_drp = ['Date', 'DayOfYear', 'WeekOfYear', 'Quarter', 'Irrad_direct', 'Irrad_difuse']
     features_to_scale = ['Temperature', 
@@ -259,10 +268,10 @@ if __name__ == "__main__":
     value_to_split = 2019
     look_back=3
     
+    # Default Code
     Copy_CSVs_For_Dataset(path_interim, path_processed)
     Manage_CSVs(path_processed, ctr_code, cols_to_drp, ff_format)
-    Manage_Datasets(path_processed, key_to_split, value_to_split, features_to_scale, look_back)
-    mydict = Read_Pickle(os.path.join(path_processed, 'Processed-Dataset.pickle'))
+    mydict = Manage_Datasets(path_processed, path_to_dir_final, pickle_name, key_to_split, value_to_split, features_to_scale, look_back)
     print(f'PT_Daily:: Trainset-Length: {len(mydict["PT_Daily"]["trX"])} Testset-Length:{len(mydict["PT_Daily"]["tsX"])}')
     print(mydict["PT_Daily"]["trX"])
     print(' ')    
