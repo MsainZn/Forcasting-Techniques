@@ -7,13 +7,15 @@ from sklearn.ensemble import RandomForestRegressor
 
 # Define the MLP model
 class MLP_LF(nn.Module):
-    def __init__(self, input_size):
+    def __init__(self, 
+                 input_size:int
+        )->None:
         super(MLP_LF, self).__init__()
         self.fc1 = nn.Linear(input_size, 64)  # Input layer to hidden layer
         self.relu = nn.ReLU()
         self.fc2 = nn.Linear(64, 1)  # Hidden layer to output layer
 
-    def forward(self, x):
+    def forward(self, x:torch.Tensor):
         x = self.fc1(x)
         x = self.relu(x)
         x = self.fc2(x)
@@ -21,7 +23,14 @@ class MLP_LF(nn.Module):
 
 # Define the BiLSTM model
 class BiLSTM_LF(nn.Module):
-    def __init__(self, input_size, hidden_size=64, num_layers=2, output_size=1, dropout=0.3):
+    def __init__(self, 
+                 input_size:int, 
+                 hidden_size:int=64, 
+                 num_layers:int=2, 
+                 output_size:int=1, 
+                 dropout:float=0.3
+        )->None:
+        
         super(BiLSTM_LF, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
@@ -37,7 +46,7 @@ class BiLSTM_LF(nn.Module):
         # Fully Connected Layer
         self.fc = nn.Linear(hidden_size * 2, output_size)
         
-    def forward(self, x):
+    def forward(self, x:torch.tensor):
         # Initial hidden state and cell state
         # The number of layers in the LSTM multiplied by 2 because it's a bidirectional LSTM (one direction for forward pass and one for backward).
         # x.size(0): The batch size, which is the number of sequences in the input batch.
@@ -56,18 +65,49 @@ class BiLSTM_LF(nn.Module):
         
         return out
     
+# Define Transformer model (Based on Attention is All You Need)
+class Transformer_LF(nn.Module):
+    def __init__(
+            self, 
+            input_size:int, 
+            num_layers:int=6, 
+            hidden_size:int=128, 
+            num_heads:int=8, 
+            dropout:float=0.1
+        )->None:
+        super(Transformer_LF, self).__init__()
+        
+        self.encoder_layer = nn.TransformerEncoderLayer(
+                                        d_model=input_size, 
+                                        nhead=num_heads, 
+                                        dim_feedforward=hidden_size, 
+                                        dropout=dropout
+                            )
+        self.transformer_encoder = nn.TransformerEncoder(
+                                            self.encoder_layer, 
+                                            num_layers=num_layers
+                                        )
+        
+        self.fc = nn.Linear(input_size, 1)
+
+    def forward(self, x:torch.tensor):
+        x = self.transformer_encoder(x)
+        x = self.fc(x)
+        return x
+
 # Define the SVM model
 class SVM_LF:
     def __init__(
             self, 
-            kernel='rbf', 
-            C=1.0, 
-            epsilon=0.1, 
-            gamma='scale', 
-            max_iter=1000
+            kernel:str='rbf', 
+            C:float=1.0, 
+            epsilon:float=0.1, 
+            gamma:float='scale', 
+            max_iter:int=1000
         ) -> None:
         
-        self.model = SVR(kernel=kernel, 
+        self.model = SVR(
+                         kernel=kernel, 
                          C=C, 
                          epsilon=epsilon, 
                          verbose=True, 
@@ -96,12 +136,12 @@ class SVM_LF:
 class KNN_LF:
     def __init__(
             self, 
-            n_neighbors=5, 
-            algorithm='auto', 
-            weights='uniform', 
-            metric='minkowski', 
-            leaf_size=30, 
-            p=2
+            n_neighbors:int=5, 
+            algorithm:str='auto', 
+            weights:str='uniform', 
+            metric:str='minkowski', 
+            leaf_size:int=30, 
+            p:int=2
         ) -> None:
         
         self.model = KNeighborsRegressor(
@@ -137,9 +177,9 @@ class KNN_LF:
 class RandomForest_LF:
     def __init__(
             self, 
-            n_estimators=100, 
-            max_depth=None, 
-            random_state=None
+            n_estimators:int=100, 
+            max_depth:int=None, 
+            random_state:int=None
         )->None:
         self.model = RandomForestRegressor(
                         n_estimators=n_estimators, 
@@ -169,78 +209,52 @@ class RandomForest_LF:
             '''
         )
 
-# Define Transformer model (Based on Attention is All You Need)
-class Transformer_LF(nn.Module):
-    def __init__(
-            self, 
-            input_size, 
-            num_layers=6, 
-            hidden_size=128, 
-            num_heads=8, 
-            dropout=0.1
-        )->None:
-        super(Transformer_LF, self).__init__()
-        
-        self.encoder_layer = nn.TransformerEncoderLayer(
-                                        d_model=input_size, 
-                                        nhead=num_heads, 
-                                        dim_feedforward=hidden_size, 
-                                        dropout=dropout
-                            )
-        self.transformer_encoder = nn.TransformerEncoder(
-                                            self.encoder_layer, 
-                                            num_layers=num_layers
-                                        )
-        
-        self.fc = nn.Linear(input_size, 1)
 
-    def forward(self, x):
-        x = self.transformer_encoder(x)
-        x = self.fc(x)
-        return x
+
+''' 
+    # GEEKY VERSION OF BILSTM:
     
-# GEEKY VERSION FOR A GEEK LIKE ME!!!!
-class BiLSTM_geeky(nn.Module):
-    def __init__(self, input_size, hidden_size=64, num_layers=2, output_size=1, dropout=0.3):
-        super(BiLSTM_geeky, self).__init__()
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-        
-        # BiLSTM Cell
-        self.lstm_f = nn.LSTMCell(input_size, hidden_size)
-        self.lstm_b = nn.LSTMCell(input_size, hidden_size)
-        
-        # Fully Connected Layer
-        self.fc = nn.Linear(hidden_size * 2, output_size)
-    
-    def forward(self, x):
-        # Initial hidden state and cell state
-        h0_f = torch.zeros(x.size(0), self.hidden_size).to(x.device)
-        c0_f = torch.zeros(x.size(0), self.hidden_size).to(x.device)
-        h0_b = torch.zeros(x.size(0), self.hidden_size).to(x.device)
-        c0_b = torch.zeros(x.size(0), self.hidden_size).to(x.device)
-        
-        # Forward and backward hidden state and cell state lists
-        h_f, c_f = [h0_f], [c0_f]
-        h_b, c_b = [h0_b], [c0_b]
-        
-        # Forward pass through LSTM
-        for i in range(x.size(1)):
-            h_f_next, c_f_next = self.lstm_f(x[:, i, :], (h_f[-1], c_f[-1]))
-            h_f.append(h_f_next)
-            c_f.append(c_f_next)
+    class BiLSTM_geeky(nn.Module):
+        def __init__(self, input_size, hidden_size=64, num_layers=2, output_size=1, dropout=0.3):
+            super(BiLSTM_geeky, self).__init__()
+            self.hidden_size = hidden_size
+            self.num_layers = num_layers
             
-        # Backward pass through LSTM
-        for i in reversed(range(x.size(1))):
-            h_b_next, c_b_next = self.lstm_b(x[:, i, :], (h_b[-1], c_b[-1]))
-            h_b.append(h_b_next)
-            c_b.append(c_b_next)
+            # BiLSTM Cell
+            self.lstm_f = nn.LSTMCell(input_size, hidden_size)
+            self.lstm_b = nn.LSTMCell(input_size, hidden_size)
+            
+            # Fully Connected Layer
+            self.fc = nn.Linear(hidden_size * 2, output_size)
         
-        # Concatenate forward and backward hidden states
-        h_concat = torch.cat((h_f[-1], h_b[-1]), dim=1)
-        
-        # Pass through the fully connected layer
-        out = self.fc(h_concat)
-        
-        return out
-    
+        def forward(self, x):
+            # Initial hidden state and cell state
+            h0_f = torch.zeros(x.size(0), self.hidden_size).to(x.device)
+            c0_f = torch.zeros(x.size(0), self.hidden_size).to(x.device)
+            h0_b = torch.zeros(x.size(0), self.hidden_size).to(x.device)
+            c0_b = torch.zeros(x.size(0), self.hidden_size).to(x.device)
+            
+            # Forward and backward hidden state and cell state lists
+            h_f, c_f = [h0_f], [c0_f]
+            h_b, c_b = [h0_b], [c0_b]
+            
+            # Forward pass through LSTM
+            for i in range(x.size(1)):
+                h_f_next, c_f_next = self.lstm_f(x[:, i, :], (h_f[-1], c_f[-1]))
+                h_f.append(h_f_next)
+                c_f.append(c_f_next)
+                
+            # Backward pass through LSTM
+            for i in reversed(range(x.size(1))):
+                h_b_next, c_b_next = self.lstm_b(x[:, i, :], (h_b[-1], c_b[-1]))
+                h_b.append(h_b_next)
+                c_b.append(c_b_next)
+            
+            # Concatenate forward and backward hidden states
+            h_concat = torch.cat((h_f[-1], h_b[-1]), dim=1)
+            
+            # Pass through the fully connected layer
+            out = self.fc(h_concat)
+            
+            return out
+'''

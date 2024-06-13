@@ -80,10 +80,31 @@ def evaluate_DL_model(
     
     return mse, r2, avg_loss
 
-def train_ML_model(model, X_train, y_train):
-    model.fit(X_train, y_train)
+def train_ML_model(
+        model, 
+        x_trn, 
+        x_tst, 
+        y_trn, 
+        y_tst
+    ):
+    model.fit(x_trn, y_trn)
 
-def evaluate_ML_model(model, X_test, y_test):
-    predictions = model.predict(X_test)
-    rmse = model.calculate_rmse(y_test, predictions)
-    return rmse
+    rmse_trn, r2_trn, avg_loss_trn = evaluate_ML_model(model, x_trn, y_trn)
+    rmse_tst, r2_tst, avg_loss_tst = evaluate_ML_model(model, x_tst, y_tst)
+
+    print(f'Train: MSE = {rmse_trn:5.4f} R2-Score = {r2_trn:5.4f} AVG-Loss = {avg_loss_trn:5.4f}')
+    print(f'Test:  MSE = {rmse_tst:5.4f} R2-Score = {r2_tst:5.4f} AVG-Loss = {avg_loss_tst:5.4f}')
+
+    return model
+
+def evaluate_ML_model(
+        model, 
+        x_tst, 
+        y_tst
+    ):
+    predictions = model.predict(x_tst)
+    rmse = model.calculate_rmse(y_tst, predictions)
+    r2 = r2_score(y_tst, predictions)
+    avg_loss = mean_squared_error(y_tst, predictions)
+
+    return rmse, r2, avg_loss

@@ -1,3 +1,22 @@
+import runpy
+
+ds_file = 'data/make_dataset.py'
+ft_file = 'features/build_features.py'
+batch_size = 64
+
+runpy.run_path(ds_file)
+runpy.run_path(ft_file)
+
+
+# # Create TensorDatasets
+# train_dataset = TensorDataset(train_sequences_tensor, train_targets_tensor)
+# test_dataset = TensorDataset(test_sequences_tensor, test_targets_tensor)
+
+# # DataLoader
+# train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+# test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+
+
 '''
 # Define models
 models = {
