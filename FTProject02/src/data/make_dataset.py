@@ -5,6 +5,7 @@ import re
 import shutil
 from pathlib import Path
 import holidays
+import yaml
 
 def is_holiday(
         date: str, 
@@ -294,16 +295,25 @@ def Clean_Directory(
 
 
 if __name__ == "__main__":
-    # Important Paths
-    path_raw     = "../../data/raw"
-    path_interim = "../../data/interim"
-    ctr_code = ['ES', 'PT', 'PL', 'FR', 'SE']
-    pattern = r'^(201[5-9]\.csv)$'
-    selected_cols = ['Date', 'Year', 'DayOfYear', 'Month', 'Quarter', 'WeekOfYear', 'WeekOfMonth', 'Day', 'Hour', 'Weekday', 'IsWeekend', 'IsHoliday', # Cal-Specific (11-Inputs)
-                     'Temperature', 'Irrad_direct', 'Irrad_difuse',                                                                                    # Weather Condition (3-Inputs)
-                     'Load'                                                                                                                            # Target Load (1-Inputs)
-        ] 
-    cols_to_drp = ['A', 'B', 'Load_Prev']
+
+    # Load the configuration
+    with open('make_dataset_config.yaml', 'r') as f:
+        config = yaml.safe_load(f)
+
+    # Access the configuration values
+    path_raw = config['paths']['raw']
+    path_interim = config['paths']['interim']
+    ctr_code = config['ctr_code']
+    pattern = config['pattern']
+    selected_cols = config['selected_cols']
+    cols_to_drp = config['cols_to_drp']
+
+    # Use the configuration values
+    Clean_Directory(path_interim)
+    Copy_CSVs_To_Process(path_raw, path_interim, ctr_code)
+    Sample_Manager(path_interim, ctr_code, selected_cols, cols_to_drp)
+    Test_Manager(path_interim, ctr_code)
+
     Clean_Directory(path_interim)
     Copy_CSVs_To_Process(path_raw, path_interim, ctr_code)
     Sample_Manager(path_interim, ctr_code, selected_cols, cols_to_drp)

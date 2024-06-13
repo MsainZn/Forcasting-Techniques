@@ -1,12 +1,16 @@
 import runpy
+from features.build_features import Read_Pickle
 
-ds_file = 'data/make_dataset.py'
-ft_file = 'features/build_features.py'
+# Configs
 batch_size = 64
+path_to_data"../../data/raw"
 
-runpy.run_path(ds_file)
-runpy.run_path(ft_file)
+exec_files = ['data/make_dataset.py', 'features/build_features.py']
 
+for file in exec_files:
+    runpy.run_path(file)
+
+Read_Pickle()
 
 # # Create TensorDatasets
 # train_dataset = TensorDataset(train_sequences_tensor, train_targets_tensor)

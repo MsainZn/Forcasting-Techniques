@@ -4,6 +4,7 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import shutil
 import numpy as np
 import pickle
+import yaml
 
 # Hourly Prediction  (Use Dataset as it is)
 # Daily Prediction   (Reorder Based on Date)
@@ -254,23 +255,24 @@ if __name__ == "__main__":
     # Print Setup
     np.set_printoptions(formatter={'float': lambda x: "{:5.1f}".format(x)})
 
-    # Default Paths
-    path_processed = "../../data/processed"
-    path_interim = "../../data/interim"
-    path_to_dir_final = "../../data/final"
-    pickle_name = 'Processed-Dataset.pickle'
+# Load the configuration file
+with open('build_features_config.yaml', 'r') as f:
+    config = yaml.safe_load(f)
 
-    # Default Parameters
-    ctr_code = ['ES', 'PT', 'PL', 'FR', 'SE']
-    cols_to_drp = ['Date', 'DayOfYear', 'WeekOfYear', 'Quarter', 'Irrad_direct', 'Irrad_difuse']
-    features_to_scale = ['Temperature', 
-                        #  'Irrad_direct', 
-                        #  'Irrad_difuse', 
-                         'Load']
-    ff_format = '%.4f'
-    key_to_split = 'Year'
-    value_to_split = 2019
-    look_back=3
+    # Access the configuration values
+    path_processed = config['paths']['processed']
+    path_interim = config['paths']['interim']
+    path_to_dir_final = config['paths']['final']
+    pickle_name = config['pickle_name']
+
+    default_params = config['default_parameters']
+    ctr_code = default_params['ctr_code']
+    cols_to_drp = default_params['cols_to_drp']
+    features_to_scale = default_params['features_to_scale']
+    ff_format = default_params['ff_format']
+    key_to_split = default_params['key_to_split']
+    value_to_split = default_params['value_to_split']
+    look_back = default_params['look_back']
     
     # Default Code
     Copy_CSVs_For_Dataset(path_interim, path_processed)
