@@ -1,19 +1,29 @@
 import torch
-from torch import nn as nn
+from torch import nn
 from sklearn.svm import SVR
 from sklearn.metrics import mean_squared_error
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.ensemble import RandomForestRegressor
+import yaml
+import os
+
+def load_yaml_parameters(filepath, model_name):
+    """ Load parameters from a YAML file. """
+    with open(filepath, 'r') as file:
+        config = yaml.safe_load(file)
+    return config.get(model_name, {})
 
 # Define the MLP model
 class MLP_LF(nn.Module):
-    def __init__(self, 
-                 input_size:int
-        )->None:
+    def __init__(self, input_size:int, config_path:str='model_config.yaml'):
         super(MLP_LF, self).__init__()
-        self.fc1 = nn.Linear(input_size, 64)  # Input layer to hidden layer
+        
+        params = load_yaml_parameters(config_path, 'MLP_LF')
+        hidden_dim = params.get('hidden_dim', 1)
+
+        self.fc1 = nn.Linear(input_size, hidden_dim)  # Input layer to hidden layer
         self.relu = nn.ReLU()
-        self.fc2 = nn.Linear(64, 1)  # Hidden layer to output layer
+        self.fc2 = nn.Linear(hidden_dim, 1)  # Hidden layer to output layer
 
     def forward(self, x:torch.Tensor):
         x = self.fc1(x)
@@ -23,15 +33,15 @@ class MLP_LF(nn.Module):
 
 # Define the BiLSTM model
 class BiLSTM_LF(nn.Module):
-    def __init__(self, 
-                 input_size:int, 
-                 hidden_size:int=64, 
-                 num_layers:int=2, 
-                 output_size:int=1, 
-                 dropout:float=0.3
-        )->None:
-        
+    def __init__(self, input_size:int, config_path:str='model_config.yaml'):
         super(BiLSTM_LF, self).__init__()
+
+        params = load_yaml_parameters(config_path, 'BiLSTM_LF')
+        hidden_size = params.get('hidden_size', 64)
+        num_layers = params.get('num_layers', 2)
+        dropout = params.get('dropout', 0.3)
+        output_size = params.get('output_size', 1)
+
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         
@@ -47,36 +57,26 @@ class BiLSTM_LF(nn.Module):
         self.fc = nn.Linear(hidden_size * 2, output_size)
         
     def forward(self, x:torch.tensor):
-        # Initial hidden state and cell state
-        # The number of layers in the LSTM multiplied by 2 because it's a bidirectional LSTM (one direction for forward pass and one for backward).
-        # x.size(0): The batch size, which is the number of sequences in the input batch.
-        # self.hidden_size: The number of hidden units in each LSTM cell.
-        h0 = torch.zeros(self.num_layers * 2, x.size(0), self.hidden_size).to(x.device) 
+        h0 = torch.zeros(self.num_layers * 2, x.size(0), self.hidden_size).to(x.device)
         c0 = torch.zeros(self.num_layers * 2, x.size(0), self.hidden_size).to(x.device)
         
-        # Forward pass through LSTM
-        out, _ = self.lstm(x, (h0, c0))  # out: tensor of shape (batch_size, seq_length, hidden_size * 2)
-        
-        # Select the last time step output for each sequence in the batch
-        out = out[:, -1, :]  # out: tensor of shape (batch_size, hidden_size * 2)
-        
-        # Pass through the fully connected layer
-        out = self.fc(out)  # out: tensor of shape (batch_size, output_size)
+        out, _ = self.lstm(x, (h0, c0))
+        out = out[:, -1, :]  # Select the last time step output for each sequence
+        out = self.fc(out)
         
         return out
-    
+
 # Define Transformer model (Based on Attention is All You Need)
 class Transformer_LF(nn.Module):
-    def __init__(
-            self, 
-            input_size:int, 
-            num_layers:int=6, 
-            hidden_size:int=128, 
-            num_heads:int=8, 
-            dropout:float=0.1
-        )->None:
+    def __init__(self, input_size:int, config_path:str='model_config.yaml'):
         super(Transformer_LF, self).__init__()
-        
+
+        params = load_yaml_parameters(config_path, 'Transformer_LF')
+        num_layers = params.get('num_layers', 6)
+        hidden_size = params.get('hidden_size', 128)
+        num_heads = params.get('num_heads', 8)
+        dropout = params.get('dropout', 0.1)
+
         self.encoder_layer = nn.TransformerEncoderLayer(
                                         d_model=input_size, 
                                         nhead=num_heads, 
@@ -97,14 +97,13 @@ class Transformer_LF(nn.Module):
 
 # Define the SVM model
 class SVM_LF:
-    def __init__(
-            self, 
-            kernel:str='rbf', 
-            C:float=1.0, 
-            epsilon:float=0.1, 
-            gamma:float='scale', 
-            max_iter:int=1000
-        ) -> None:
+    def __init__(self, config_path:str='model_config.yaml'):
+        params = load_yaml_parameters(config_path, 'SVM_LF')
+        kernel = params.get('kernel', 'rbf')
+        C = params.get('C', 1.0)
+        epsilon = params.get('epsilon', 0.1)
+        gamma = params.get('gamma', 'scale')
+        max_iter = params.get('max_iter', 1000)
         
         self.model = SVR(
                          kernel=kernel, 
@@ -121,7 +120,7 @@ class SVM_LF:
         print(
             '''
             Usage
-                svm_forecaster = SVRForecaster()
+                svm_forecaster = SVM_LF()
                 svm_forecaster.train(X_train_sequences, Y_train_sequences)
 
                 svm_train_predictions = svm_forecaster.predict(X_train_sequences)
@@ -134,15 +133,14 @@ class SVM_LF:
 
 # Define the kNN model
 class KNN_LF:
-    def __init__(
-            self, 
-            n_neighbors:int=5, 
-            algorithm:str='auto', 
-            weights:str='uniform', 
-            metric:str='minkowski', 
-            leaf_size:int=30, 
-            p:int=2
-        ) -> None:
+    def __init__(self, config_path:str='model_config.yaml'):
+        params = load_yaml_parameters(config_path, 'KNN_LF')
+        n_neighbors = params.get('n_neighbors', 5)
+        algorithm = params.get('algorithm', 'auto')
+        weights = params.get('weights', 'uniform')
+        metric = params.get('metric', 'minkowski')
+        leaf_size = params.get('leaf_size', 30)
+        p = params.get('p', 2)
         
         self.model = KNeighborsRegressor(
                             n_neighbors=n_neighbors, 
@@ -159,7 +157,7 @@ class KNN_LF:
         print(
             '''
             Usage
-                knn_forecaster = KNNForecaster()
+                knn_forecaster = KNN_LF()
                 knn_forecaster.train(X_train_sequences, Y_train_sequences)
 
                 knn_train_predictions = knn_forecaster.predict(X_train_sequences)
@@ -175,12 +173,12 @@ class KNN_LF:
 
 # Define Random Forest model
 class RandomForest_LF:
-    def __init__(
-            self, 
-            n_estimators:int=100, 
-            max_depth:int=None, 
-            random_state:int=None
-        )->None:
+    def __init__(self, config_path:str='model_config.yaml'):
+        params = load_yaml_parameters(config_path, 'RandomForest_LF')
+        n_estimators = params.get('n_estimators', 100)
+        max_depth = params.get('max_depth', None)
+        random_state = params.get('random_state', None)
+        
         self.model = RandomForestRegressor(
                         n_estimators=n_estimators, 
                         max_depth=max_depth, 
@@ -195,7 +193,7 @@ class RandomForest_LF:
         print(
             '''
             # Usage
-                rf_forecaster = RandomForestForecaster()
+                rf_forecaster = RandomForest_LF()
                 rf_forecaster.train(X_train_sequences, Y_train_sequences)
 
                 rf_train_predictions = rf_forecaster.predict(X_train_sequences)
@@ -208,53 +206,3 @@ class RandomForest_LF:
                 print("Test RMSE (Random Forest):", test_rmse_rf)
             '''
         )
-
-
-
-''' 
-    # GEEKY VERSION OF BILSTM:
-    
-    class BiLSTM_geeky(nn.Module):
-        def __init__(self, input_size, hidden_size=64, num_layers=2, output_size=1, dropout=0.3):
-            super(BiLSTM_geeky, self).__init__()
-            self.hidden_size = hidden_size
-            self.num_layers = num_layers
-            
-            # BiLSTM Cell
-            self.lstm_f = nn.LSTMCell(input_size, hidden_size)
-            self.lstm_b = nn.LSTMCell(input_size, hidden_size)
-            
-            # Fully Connected Layer
-            self.fc = nn.Linear(hidden_size * 2, output_size)
-        
-        def forward(self, x):
-            # Initial hidden state and cell state
-            h0_f = torch.zeros(x.size(0), self.hidden_size).to(x.device)
-            c0_f = torch.zeros(x.size(0), self.hidden_size).to(x.device)
-            h0_b = torch.zeros(x.size(0), self.hidden_size).to(x.device)
-            c0_b = torch.zeros(x.size(0), self.hidden_size).to(x.device)
-            
-            # Forward and backward hidden state and cell state lists
-            h_f, c_f = [h0_f], [c0_f]
-            h_b, c_b = [h0_b], [c0_b]
-            
-            # Forward pass through LSTM
-            for i in range(x.size(1)):
-                h_f_next, c_f_next = self.lstm_f(x[:, i, :], (h_f[-1], c_f[-1]))
-                h_f.append(h_f_next)
-                c_f.append(c_f_next)
-                
-            # Backward pass through LSTM
-            for i in reversed(range(x.size(1))):
-                h_b_next, c_b_next = self.lstm_b(x[:, i, :], (h_b[-1], c_b[-1]))
-                h_b.append(h_b_next)
-                c_b.append(c_b_next)
-            
-            # Concatenate forward and backward hidden states
-            h_concat = torch.cat((h_f[-1], h_b[-1]), dim=1)
-            
-            # Pass through the fully connected layer
-            out = self.fc(h_concat)
-            
-            return out
-'''

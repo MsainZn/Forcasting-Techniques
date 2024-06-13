@@ -1,13 +1,16 @@
 paths:
   raw: "../../data/raw"
   interim: "../../data/interim"
+# country_codes
 ctr_code:
   - ES
   - PT
   - PL
   - FR
   - SE
+# patter to select year
 pattern: "^(201[5-9]\\.csv)$"
+# selected columns in the dataset
 selected_cols:
   - Date
   - Year
@@ -25,6 +28,7 @@ selected_cols:
   - Irrad_direct
   - Irrad_difuse
   - Load
+# columns to be removed during the initial process
 cols_to_drp:
   - A
   - B

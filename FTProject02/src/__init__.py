@@ -1,33 +1,52 @@
 import runpy
+import subprocess
+import yaml
+from torch.utils.data import DataLoader, TensorDataset
+
 from features.build_features import Read_Pickle
+from models.create_model import SVM_LF, KNN_LF, RandomForest_LF, BiLSTM_LF, MLP_LF, BiLSTM_LF, Transformer_LF
 
-# Configs
-batch_size = 64
-path_to_data"../../data/raw"
 
-exec_files = ['data/make_dataset.py', 'features/build_features.py']
+# Load the configuration
+with open('init_config.yaml', 'r') as f:
+    default_params = yaml.safe_load(f)
 
-for file in exec_files:
-    runpy.run_path(file)
+# Run Necessary Preprocessing
+for file in default_params["exec_paths"]:
+    subprocess.run(["python", file])
 
-Read_Pickle()
 
-# # Create TensorDatasets
-# train_dataset = TensorDataset(train_sequences_tensor, train_targets_tensor)
-# test_dataset = TensorDataset(test_sequences_tensor, test_targets_tensor)
+# Readv Compressed Data
+# data_library = Read_Pickle(default_params["data_path"])
 
-# # DataLoader
-# train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-# test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+# tensor_library = {}
+# for country in default_params['ctr_code']:
+#     for period in ['Hourly', 'Daily', 'Weekly', 'Monthly']:
+#         # Create TensorDatasets
+#         train_dataset= TensorDataset(data_library[f'{country}_{period}']["trX"], data_library[f'{country}_{period}']["trY"])
+#         test_dataset  = TensorDataset(data_library[f'{country}_{period}']["tsX"], data_library[f'{country}_{period}']["tsY"])
+#         # DataLoader
+#         tensor_library[f'{country}_{period}']['trn'] = DataLoader(train_dataset, batch_size=default_params["batch_size"], shuffle=True)
+#         tensor_library[f'{country}_{period}']['tst'] = DataLoader(test_dataset,  batch_size=default_params["batch_size"],  shuffle=False)
+
+
+# models_DL = {
+#     "Transformer": Transformer_LF(input_size, num_layers, hidden_size, num_heads, dropout),
+#     "BiLSTM": BiLSTM_LF(input_size, hidden_size, num_layers, output_size, dropout),
+#     "MLP": MLP_LF(input_size)
+# }
+
+# # Define models
+# models_ML = {
+#     "SVM": SVM_LF(),
+#     "KNN": KNN_LF(),
+#     "RandomForest": RandomForest_LF()
+# }
 
 
 '''
 # Define models
-models = {
-    "Transformer": Transformer_LF(input_size, num_layers, hidden_size, num_heads, dropout),
-    "BiLSTM": BiLSTM_LF(input_size, hidden_size, num_layers, output_size, dropout),
-    "MLP": MLP_LF(input_size)
-}
+
 
 # Define criterion and optimizer
 criterion = nn.MSELoss()
@@ -42,12 +61,6 @@ for name, model in models.items():
 
 ****************************************************************************
 
-# Define models
-models = {
-    "SVM": SVM_LF(),
-    "KNN": KNN_LF(),
-    "RandomForest": RandomForest_LF()
-}
 
 # Training loop
 for name, model in models.items():

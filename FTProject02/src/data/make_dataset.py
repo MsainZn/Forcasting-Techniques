@@ -296,8 +296,10 @@ def Clean_Directory(
 
 if __name__ == "__main__":
 
+    # config_file = 'dataset_config.yaml'
+    config_file = os.path.join(os.path.dirname(__file__), 'dataset_config.yaml')
     # Load the configuration
-    with open('make_dataset_config.yaml', 'r') as f:
+    with open(config_file, 'r') as f:
         config = yaml.safe_load(f)
 
     # Access the configuration values
@@ -309,11 +311,6 @@ if __name__ == "__main__":
     cols_to_drp = config['cols_to_drp']
 
     # Use the configuration values
-    Clean_Directory(path_interim)
-    Copy_CSVs_To_Process(path_raw, path_interim, ctr_code)
-    Sample_Manager(path_interim, ctr_code, selected_cols, cols_to_drp)
-    Test_Manager(path_interim, ctr_code)
-
     Clean_Directory(path_interim)
     Copy_CSVs_To_Process(path_raw, path_interim, ctr_code)
     Sample_Manager(path_interim, ctr_code, selected_cols, cols_to_drp)

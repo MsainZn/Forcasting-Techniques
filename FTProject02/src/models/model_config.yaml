@@ -1,0 +1,34 @@
+MLP_LF:
+  hidden_dim: 64
+
+BiLSTM_LF:
+  hidden_size: 128
+  num_layers: 2
+  dropout: 0.2
+  output_size: 1
+
+Transformer_LF:
+  num_layers: 4
+  hidden_size: 256
+  num_heads: 8
+  dropout: 0.1
+
+SVM_LF:
+  kernel: 'linear'
+  C: 1.0
+  epsilon: 0.1
+  gamma: 'scale'
+  max_iter: 1000
+
+KNN_LF:
+  n_neighbors: 10
+  algorithm: 'auto'
+  weights: 'distance'
+  metric: 'euclidean'
+  leaf_size: 30
+  p: 2
+
+RandomForest_LF:
+  n_estimators: 200
+  max_depth: 10
+  random_state: 42

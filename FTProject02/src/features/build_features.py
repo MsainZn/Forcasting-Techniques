@@ -255,9 +255,12 @@ if __name__ == "__main__":
     # Print Setup
     np.set_printoptions(formatter={'float': lambda x: "{:5.1f}".format(x)})
 
-# Load the configuration file
-with open('build_features_config.yaml', 'r') as f:
-    config = yaml.safe_load(f)
+    # config_file = 'feature_config.yaml'
+    config_file = os.path.join(os.path.dirname(__file__), 'feature_config.yaml')
+
+    # Load the configuration file
+    with open(config_file, 'r') as f:
+        config = yaml.safe_load(f)
 
     # Access the configuration values
     path_processed = config['paths']['processed']
@@ -278,7 +281,7 @@ with open('build_features_config.yaml', 'r') as f:
     Copy_CSVs_For_Dataset(path_interim, path_processed)
     Manage_CSVs(path_processed, ctr_code, cols_to_drp, ff_format)
     mydict = Manage_Datasets(path_processed, path_to_dir_final, pickle_name, key_to_split, value_to_split, features_to_scale, look_back)
-    print(f'PT_Daily:: Trainset-Length: {len(mydict["PT_Daily"]["trX"])} Testset-Length:{len(mydict["PT_Daily"]["tsX"])}')
-    print(mydict["PT_Daily"]["trX"])
-    print(' ')    
-    print(mydict["PT_Daily"]["trY"])    
+    # print(f'PT_Daily:: Trainset-Length: {len(mydict["PT_Daily"]["trX"])} Testset-Length:{len(mydict["PT_Daily"]["tsX"])}')
+    # print(mydict["PT_Daily"]["trX"])
+    # print(' ')    
+    # print(mydict["PT_Daily"]["trY"])    

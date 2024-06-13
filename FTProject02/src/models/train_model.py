@@ -108,3 +108,4 @@ def evaluate_ML_model(
     avg_loss = mean_squared_error(y_tst, predictions)
 
     return rmse, r2, avg_loss
+

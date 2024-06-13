@@ -3,10 +3,8 @@ paths:
   processed: "../../data/processed"
   interim: "../../data/interim"
   final: "../../data/final"
-
 # Pickle File Name
 pickle_name: "Processed-Dataset.pickle"
-
 # Default Parameters
 default_parameters:
   ctr_code:
@@ -15,6 +13,7 @@ default_parameters:
     - PL
     - FR
     - SE
+# Features to remove
   cols_to_drp:
     - Date
     - DayOfYear
@@ -22,10 +21,14 @@ default_parameters:
     - Quarter
     - Irrad_direct
     - Irrad_difuse
+# numeric featurs
   features_to_scale:
     - Temperature
     - Load
+# Accuracy of numbers
   ff_format: "%.4f"
+# Split Parameters
   key_to_split: "Year"
   value_to_split: 2019
+# Look_back Window
   look_back: 3

@@ -1,0 +1,11 @@
+exec_paths:
+  - data/make_dataset.py
+  - features/build_features.py
+data_path: "../data/final/Processed-Dataset.pickle"
+ctr_code:
+  - ES
+  - PT
+  - PL
+  - FR
+  - SE
+batch_size: 64
