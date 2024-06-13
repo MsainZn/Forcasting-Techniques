@@ -1,0 +1,31 @@
+paths:
+  raw: "../../data/raw"
+  interim: "../../data/interim"
+ctr_code:
+  - ES
+  - PT
+  - PL
+  - FR
+  - SE
+pattern: "^(201[5-9]\\.csv)$"
+selected_cols:
+  - Date
+  - Year
+  - DayOfYear
+  - Month
+  - Quarter
+  - WeekOfYear
+  - WeekOfMonth
+  - Day
+  - Hour
+  - Weekday
+  - IsWeekend
+  - IsHoliday
+  - Temperature
+  - Irrad_direct
+  - Irrad_difuse
+  - Load
+cols_to_drp:
+  - A
+  - B
+  - Load_Prev

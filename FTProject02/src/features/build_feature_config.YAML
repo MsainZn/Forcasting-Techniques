@@ -1,0 +1,31 @@
+# Paths Configuration
+paths:
+  processed: "../../data/processed"
+  interim: "../../data/interim"
+  final: "../../data/final"
+
+# Pickle File Name
+pickle_name: "Processed-Dataset.pickle"
+
+# Default Parameters
+default_parameters:
+  ctr_code:
+    - ES
+    - PT
+    - PL
+    - FR
+    - SE
+  cols_to_drp:
+    - Date
+    - DayOfYear
+    - WeekOfYear
+    - Quarter
+    - Irrad_direct
+    - Irrad_difuse
+  features_to_scale:
+    - Temperature
+    - Load
+  ff_format: "%.4f"
+  key_to_split: "Year"
+  value_to_split: 2019
+  look_back: 3
